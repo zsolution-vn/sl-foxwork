@@ -719,6 +719,13 @@ func (a *App) LoginByOAuth(rctx request.CTX, service string, userData io.Reader,
 		return nil, err
 	}
 
+	// After ensuring the user exists and optional invite join is applied,
+	// process provider-specific SSO attributes such as team assignment/admin.
+	if pErr := a.processSSOTeamMembership(rctx, user, buf.Bytes()); pErr != nil {
+		// Soft-fail: log warning and proceed with login
+		rctx.Logger().Warn("Failed processing SSO team membership", mlog.Err(pErr))
+	}
+
 	return user, nil
 }
 
@@ -769,6 +776,103 @@ func (a *App) CompleteSwitchWithOAuth(rctx request.CTX, service string, userData
 	})
 
 	return user, nil
+}
+
+// processSSOTeamMembership inspects the provider UserInfo payload (raw JSON bytes)
+// for custom attributes and applies team membership and admin role as needed.
+// Expected attributes:
+// - team_id: slug-like identifier for team name (e.g., "soly-1")
+// - team_name: human-readable display name (e.g., "SALELY AI")
+// - is_admin: boolean; if true, grant team admin role
+func (a *App) processSSOTeamMembership(rctx request.CTX, user *model.User, userInfoJSON []byte) *model.AppError {
+	var raw map[string]any
+	if err := json.Unmarshal(userInfoJSON, &raw); err != nil {
+		return model.NewAppError("processSSOTeamMembership", "api.oauth.userinfo.decode_error", nil, "", http.StatusBadRequest).Wrap(err)
+	}
+
+	// Extract attributes with tolerant typing
+	getString := func(v any) string {
+		switch t := v.(type) {
+		case string:
+			return t
+		default:
+			return ""
+		}
+	}
+	getBool := func(v any) bool {
+		switch t := v.(type) {
+		case bool:
+			return t
+		case string:
+			lower := strings.ToLower(strings.TrimSpace(t))
+			return lower == "true" || lower == "1" || lower == "yes"
+		case float64:
+			return t != 0
+		default:
+			return false
+		}
+	}
+
+	teamID := getString(raw["team_id"])     // expected slug
+	teamName := getString(raw["team_name"]) // display name
+	isAdmin := getBool(raw["is_admin"])     // team admin flag
+
+	if teamID == "" && teamName == "" {
+		return nil // nothing to do
+	}
+
+	// Derive team name (slug) and display name
+	teamSlug := teamID
+	if teamSlug == "" {
+		teamSlug = model.CleanTeamName(teamName)
+	} else {
+		teamSlug = model.CleanTeamName(teamSlug)
+	}
+	if teamSlug == "" {
+		return nil
+	}
+	displayName := teamName
+	if displayName == "" {
+		displayName = teamSlug
+	}
+
+	// Find or create team
+	var team *model.Team
+	if t, err := a.GetTeamByName(teamSlug); err == nil {
+		team = t
+	} else if err.StatusCode == http.StatusNotFound {
+		// Create team and join creator
+		newTeam := &model.Team{
+			Name:            teamSlug,
+			DisplayName:     displayName,
+			Type:            model.TeamInvite,
+			AllowOpenInvite: false,
+		}
+		t, cErr := a.CreateTeamWithUser(rctx, newTeam, user.Id)
+		if cErr != nil {
+			return cErr
+		}
+		team = t
+	} else {
+		return err
+	}
+
+	// Ensure membership (no-op if already a member)
+	if appErr := a.AddUserToTeamByTeamId(rctx, team.Id, user); appErr != nil {
+		// If already member, continue; otherwise fail
+		// AddUserToTeamByTeamId handles exists internally via JoinUserToTeam
+		// but return error for other issues
+		return appErr
+	}
+
+	// Assign admin role if requested
+	if isAdmin {
+		if _, appErr := a.UpdateTeamMemberSchemeRoles(rctx, team.Id, user.Id, false, true, true); appErr != nil {
+			return appErr
+		}
+	}
+
+	return nil
 }
 
 func (a *App) CreateOAuthStateToken(extra string) (*model.Token, *model.AppError) {
