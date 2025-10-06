@@ -2032,7 +2032,7 @@ func login(c *Context, w http.ResponseWriter, r *http.Request) {
 						if v.ID == 0 || v.Name == "" {
 							continue
 						}
-						teamName := dbName + "-" + v.ID
+						teamName := fmt.Sprintf("%s-%d", dbName, v.ID)
 						if teamName == "" {
 							continue
 						}
