@@ -20,6 +20,7 @@ import CRTPostsChannelResetWatcher from "components/threading/channel_threads/po
 import UnreadsStatusHandler from "components/unreads_status_handler";
 
 import Pluggable from "plugins/pluggable";
+import { addBodyClasses, removeBodyClasses } from "utils/body_class_manager";
 import { Constants } from "utils/constants";
 import { isEdge, isInternetExplorer } from "utils/user_agent";
 
@@ -56,12 +57,10 @@ export default function ChannelController(props: Props) {
             navigator?.userAgentData?.platform ||
             navigator?.platform ||
             "unknown";
-        document.body.classList.add(
-            ...getClassnamesForBody(platform, isMsBrowser)
-        );
+        addBodyClasses(...getClassnamesForBody(platform, isMsBrowser));
 
         return () => {
-            document.body.classList.remove(...BODY_CLASS_FOR_CHANNEL);
+            removeBodyClasses(...BODY_CLASS_FOR_CHANNEL);
 
             // This cleans up the status and profile setInterval of fetching poll we use to batch requests
             // when fetching statuses and profiles for a list of users.
