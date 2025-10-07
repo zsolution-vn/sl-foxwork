@@ -1911,10 +1911,6 @@ func login(c *Context, w http.ResponseWriter, r *http.Request) {
 	if strings.EqualFold(os.Getenv("MM_ODOO_SSO_ENABLED"), "true") || os.Getenv("MM_ODOO_SSO_ENABLED") == "1" || strings.EqualFold(os.Getenv("MM_ODOO_SSO_ENABLED"), "on") {
 		baseURL := strings.TrimRight(os.Getenv("MM_ODOO_BASE_URL"), "/")
 		dbName := os.Getenv("MM_ODOO_DB")
-		jsonrpcPath := os.Getenv("MM_ODOO_JSONRPC_PATH")
-		if jsonrpcPath == "" {
-			jsonrpcPath = "/jsonrpc"
-		}
 		if baseURL != "" && dbName != "" && loginId != "" && password != "" {
 			// prepare http client
 			timeoutMs := 8000
@@ -1937,12 +1933,14 @@ func login(c *Context, w http.ResponseWriter, r *http.Request) {
 				ID: 1,
 			}
 			authRes, appErr := callOdooAuthenticate(httpClient, baseURL+"/web/session/authenticate", authPayload)
+			c.Logger.Debug("loginOdoo authenticate", mlog.Any("authRes", authRes), mlog.Any("appErr", appErr))
 			if appErr != nil {
 				// Upstream error: return error only if it's not just invalid credentials
 				// callOdooAuthenticate returns (0, nil) for invalid creds; any non-nil error here is upstream
 				c.Err = appErr
 				return
 			}
+			c.Logger.Debug("uid", mlog.Int("uid", authRes.UID))
 			if authRes.UID > 0 {
 				// Odoo credentials valid: use info from authenticate result
 				username := authRes.Username
@@ -1950,20 +1948,68 @@ func login(c *Context, w http.ResponseWriter, r *http.Request) {
 				if username == "" {
 					username = loginId
 				}
-				email := fmt.Sprintf("odoo_%d@odoo.local", authRes.UID)
+				// Use loginId as email if it contains @, otherwise use generated email
+				email := loginId
+				if !strings.Contains(email, "@") {
+					email = fmt.Sprintf("odoo_%d@odoo.local", authRes.UID)
+				} else {
+					username = strings.Replace(username, "@", "-", 1)
+				}
+				c.Logger.Debug("loginOdoo email", mlog.String("email", email))
 				mmUser, _ := c.App.GetUserByEmail(email)
+				c.Logger.Debug("loginOdoo mmUser", mlog.Any("mmUser", mmUser))
 				if mmUser == nil {
-					u := &model.User{
-						Username:    model.CleanUsername(c.Logger, strings.Split(username, "@")[0]),
-						Email:       email,
-						FirstName:   displayName,
-						AuthService: "odoo",
+					// Check if user exists with old Odoo email format
+					oldEmail := fmt.Sprintf("odoo_%d@odoo.local", authRes.UID)
+					mmUser, _ = c.App.GetUserByEmail(oldEmail)
+					if mmUser != nil {
+						// Update existing user with old email to use real email
+						mmUser.Email = email
+						mmUser.FirstName = displayName
+						mmUser.AuthService = "odoo"
+						if username != "" {
+							mmUser.Username = model.CleanUsername(c.Logger, strings.Split(username, "@")[0])
+							if mmUser.Username == "" {
+								mmUser.Username = model.NewId()[:12]
+							}
+						}
+						var cerr *model.AppError
+						mmUser, cerr = c.App.UpdateUser(c.AppContext, mmUser, true)
+						if cerr != nil {
+							c.Err = cerr
+							return
+						}
+					} else {
+						// Create new user with real email from Odoo
+						u := &model.User{
+							Username:    model.CleanUsername(c.Logger, strings.Split(username, "@")[0]),
+							Email:       email,
+							FirstName:   displayName,
+							AuthService: "odoo",
+						}
+						if u.Username == "" {
+							u.Username = model.NewId()[:12]
+						}
+						var cerr *model.AppError
+						mmUser, cerr = c.App.CreateUser(c.AppContext, u)
+						if cerr != nil {
+							c.Err = cerr
+							return
+						}
 					}
-					if u.Username == "" {
-						u.Username = model.NewId()[:12]
+				} else {
+					// Update existing user with latest info from Odoo
+					mmUser.FirstName = displayName
+					mmUser.AuthService = "odoo"
+					if username != "" {
+						mmUser.Username = model.CleanUsername(c.Logger, strings.Split(username, "@")[0])
+						if mmUser.Username == "" {
+							mmUser.Username = model.NewId()[:12]
+						}
 					}
+					c.Logger.Debug("loginOdoo update user", mlog.Any("mmUser", mmUser))
 					var cerr *model.AppError
-					mmUser, cerr = c.App.CreateUser(c.AppContext, u)
+					mmUser, cerr = c.App.UpdateUser(c.AppContext, mmUser, true)
 					if cerr != nil {
 						c.Err = cerr
 						return
@@ -1986,7 +2032,7 @@ func login(c *Context, w http.ResponseWriter, r *http.Request) {
 						if v.ID == 0 || v.Name == "" {
 							continue
 						}
-						teamName := slugify(v.Name)
+						teamName := fmt.Sprintf("%s-%d", dbName, v.ID)
 						if teamName == "" {
 							continue
 						}

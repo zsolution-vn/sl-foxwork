@@ -382,9 +382,20 @@ func (a *App) CreateOAuthUser(rctx request.CTX, service string, userData io.Read
 
 	userByEmail, _ := a.ch.srv.userService.GetUserByEmail(user.Email)
 	if userByEmail != nil {
+		// If existing account is email/password (no AuthService), migrate it to this SSO using email match
 		if userByEmail.AuthService == "" {
-			return nil, model.NewAppError("CreateOAuthUser", "api.user.create_oauth_user.already_attached.app_error", map[string]any{"Service": service, "Auth": model.UserAuthServiceEmail}, "email="+user.Email, http.StatusBadRequest)
+			if _, err := a.Srv().Store().User().UpdateAuthData(userByEmail.Id, user.AuthService, user.AuthData, user.Email, true); err != nil {
+				var invErr *store.ErrInvalidInput
+				switch {
+				case errors.As(err, &invErr):
+					return nil, model.NewAppError("CreateOAuthUser", "app.user.update_auth_data.email_exists.app_error", nil, "", http.StatusBadRequest).Wrap(err)
+				default:
+					return nil, model.NewAppError("CreateOAuthUser", "app.user.update_auth_data.app_error", nil, "", http.StatusInternalServerError).Wrap(err)
+				}
+			}
+			return userByEmail, nil
 		}
+		// If existing account already has an AuthService, allow linking if provider confirms same user (by email or authdata)
 		if provider.IsSameUser(rctx, userByEmail, user) {
 			if _, err := a.Srv().Store().User().UpdateAuthData(userByEmail.Id, user.AuthService, user.AuthData, "", false); err != nil {
 				// if the user is not updated, write a warning to the log, but don't prevent user login

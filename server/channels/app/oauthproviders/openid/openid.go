@@ -44,16 +44,21 @@ func userFromOpenID(logger mlog.LoggerIFace, oi *openIDUser) (*model.User, error
 	if oi.Subject == "" && oi.Email == "" {
 		return nil, errors.New("openid user: both sub and email are empty")
 	}
+	logger.Debug("OpenID user", mlog.String("subject", oi.Subject), mlog.String("email", oi.Email), mlog.String("preferred_username", oi.PreferredUsername), mlog.String("name", oi.Name), mlog.String("given_name", oi.GivenName), mlog.String("family_name", oi.FamilyName))
 
 	user := &model.User{}
 
-	// Username preference: preferred_username -> email local-part -> sub
-	username := oi.PreferredUsername
-	if username == "" && oi.Email != "" {
+	// Username preference: email local-part -> preferred_username -> sub
+	// Always try to base username on email local-part when available.
+	username := ""
+	if oi.Email != "" {
 		at := strings.Index(oi.Email, "@")
 		if at > 0 {
 			username = oi.Email[:at]
 		}
+	}
+	if username == "" && oi.PreferredUsername != "" {
+		username = oi.PreferredUsername
 	}
 	if username == "" {
 		username = oi.Subject
@@ -82,11 +87,9 @@ func userFromOpenID(logger mlog.LoggerIFace, oi *openIDUser) (*model.User, error
 		}
 	}
 
-	// Auth linkage
-	authData := oi.Subject
-	if authData == "" {
-		authData = user.Email
-	}
+	// Auth linkage: always use email as AuthData (lowercased). If email missing,
+	// fallback to the synthetic email set above so it's stable.
+	authData := user.Email
 	user.AuthData = &authData
 	user.AuthService = model.ServiceOpenid
 
@@ -167,5 +170,10 @@ func (op *OpenIDProvider) GetUserFromIdToken(_ request.CTX, idToken string) (*mo
 }
 
 func (op *OpenIDProvider) IsSameUser(_ request.CTX, dbUser, oauthUser *model.User) bool {
+	// Consider users the same if emails match (case-insensitive),
+	// or if AuthData matches as a fallback.
+	if strings.EqualFold(dbUser.Email, oauthUser.Email) && dbUser.Email != "" && oauthUser.Email != "" {
+		return true
+	}
 	return dbUser.AuthData == oauthUser.AuthData
 }
