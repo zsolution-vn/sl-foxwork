@@ -585,7 +585,7 @@ func (a *App) CompleteOAuth(rctx request.CTX, service string, body io.ReadCloser
 	// Extract invite token or ID from props so we can add the user to the team if needed
 	inviteToken := props["invite_token"]
 	inviteId := props["invite_id"]
-
+	rctx.Logger().Debug("CompleteOAuth", mlog.String("action", action))
 	switch action {
 	case model.OAuthActionSignup:
 		// Read body to allow re-use for team membership processing
@@ -697,6 +697,12 @@ func (a *App) LoginByOAuth(rctx request.CTX, service string, userData io.Reader,
 				if err = a.UpdateOAuthUserAttrs(rctx, bytes.NewReader(buf.Bytes()), userByEmail, provider, lookupService, tokenUser); err != nil {
 					return nil, err
 				}
+
+				// For signup flow, also honor invite token/id to add to team if provided
+				if invErr := a.processSSOTeamMembership(rctx, userByEmail, buf.Bytes()); invErr != nil {
+					rctx.Logger().Warn("Failed to add user to team", mlog.Err(invErr))
+				}
+
 				if err = a.AddUserToTeamByInviteIfNeeded(rctx, userByEmail, inviteToken, inviteId); err != nil {
 					rctx.Logger().Warn("Failed to add user to team", mlog.Err(err))
 				}
@@ -732,6 +738,7 @@ func (a *App) LoginByOAuth(rctx request.CTX, service string, userData io.Reader,
 	if err != nil {
 		return nil, err
 	}
+	rctx.Logger().Debug("LoginByOAuth", mlog.String("user_id", user.Id), mlog.String("lookup_service", lookupService))
 
 	// After ensuring the user exists and optional invite join is applied,
 	// process provider-specific SSO attributes such as team assignment/admin.

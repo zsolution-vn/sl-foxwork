@@ -404,6 +404,10 @@ func (a *App) CreateOAuthUser(rctx request.CTX, service string, userData io.Read
 				// if the user is not updated, write a warning to the log, but don't prevent user login
 				rctx.Logger().Warn("Error attempting to update user AuthData", mlog.Err(err))
 			}
+			// For signup flow, also honor invite token/id to add to team if provided
+			if invErr := a.AddUserToTeamByInviteIfNeeded(rctx, userByEmail, inviteToken, inviteId); invErr != nil {
+				rctx.Logger().Warn("Failed to add user to team", mlog.Err(invErr))
+			}
 			return userByEmail, nil
 		}
 		return nil, model.NewAppError("CreateOAuthUser", "api.user.create_oauth_user.already_attached.app_error", map[string]any{"Service": service, "Auth": userByEmail.AuthService}, "email="+user.Email+" authData="+*user.AuthData, http.StatusBadRequest)
