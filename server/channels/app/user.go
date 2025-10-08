@@ -351,7 +351,10 @@ func (a *App) createUserOrGuest(rctx request.CTX, user *model.User, guest bool) 
 
 func (a *App) CreateOAuthUser(rctx request.CTX, service string, userData io.Reader, inviteToken string, inviteId string, tokenUser *model.User) (*model.User, *model.AppError) {
 	if !*a.Config().TeamSettings.EnableUserCreation {
-		return nil, model.NewAppError("CreateOAuthUser", "api.user.create_user.disabled.app_error", nil, "", http.StatusNotImplemented)
+		// Allow user creation for OIDC even when user creation is disabled in config
+		if service != model.ServiceOpenid {
+			return nil, model.NewAppError("CreateOAuthUser", "api.user.create_user.disabled.app_error", nil, "", http.StatusNotImplemented)
+		}
 	}
 
 	provider, e := a.getSSOProvider(service)

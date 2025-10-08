@@ -588,7 +588,21 @@ func (a *App) CompleteOAuth(rctx request.CTX, service string, body io.ReadCloser
 
 	switch action {
 	case model.OAuthActionSignup:
-		return a.CreateOAuthUser(rctx, service, body, inviteToken, inviteId, tokenUser)
+		// Read body to allow re-use for team membership processing
+		var buf bytes.Buffer
+		if _, err := buf.ReadFrom(body); err != nil {
+			return nil, model.NewAppError("CompleteOAuth", "api.user.login_by_oauth.parse.app_error", map[string]any{"Service": service}, "", http.StatusBadRequest)
+		}
+		// Create user from OIDC payload regardless of general user creation toggle (handled inside CreateOAuthUser)
+		user, err := a.CreateOAuthUser(rctx, service, bytes.NewReader(buf.Bytes()), inviteToken, inviteId, tokenUser)
+		if err != nil {
+			return nil, err
+		}
+		// Apply team membership/roles based on attributes in userinfo
+		if pErr := a.processSSOTeamMembership(rctx, user, buf.Bytes()); pErr != nil {
+			rctx.Logger().Warn("Failed processing SSO team membership (signup)", mlog.Err(pErr))
+		}
+		return user, nil
 	case model.OAuthActionLogin:
 		return a.LoginByOAuth(rctx, service, body, inviteToken, inviteId, tokenUser)
 	case model.OAuthActionEmailToSSO:
@@ -816,6 +830,7 @@ func (a *App) processSSOTeamMembership(rctx request.CTX, user *model.User, userI
 	teamID := getString(raw["team_id"])     // expected slug
 	teamName := getString(raw["team_name"]) // display name
 	isAdmin := getBool(raw["is_admin"])     // team admin flag
+	rctx.Logger().Debug("processSSOTeamMembership", mlog.String("team_id", teamID), mlog.String("team_name", teamName), mlog.Bool("is_admin", isAdmin))
 
 	if teamID == "" && teamName == "" {
 		return nil // nothing to do
