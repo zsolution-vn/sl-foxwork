@@ -1,24 +1,28 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React from 'react';
-import {Redirect} from 'react-router-dom';
+import React from "react";
+import { Redirect } from "react-router-dom";
 
-import type {UserProfile} from '@mattermost/types/users';
+import type { UserProfile } from "@mattermost/types/users";
 
-import * as GlobalActions from 'actions/global_actions';
-import * as WebSocketActions from 'actions/websocket_actions.jsx';
-import BrowserStore from 'stores/browser_store';
+import * as GlobalActions from "actions/global_actions";
+import * as WebSocketActions from "actions/websocket_actions.jsx";
+import BrowserStore from "stores/browser_store";
 
-import LoadingScreen from 'components/loading_screen';
+import LoadingScreen from "components/loading_screen";
 
-import WebSocketClient from 'client/web_websocket_client';
-import Constants from 'utils/constants';
-import DesktopApp from 'utils/desktop_api';
-import {isKeyPressed} from 'utils/keyboard';
-import {getBrowserTimezone} from 'utils/timezone';
-import {isAndroid, isIos} from 'utils/user_agent';
-import {doesCookieContainsMMUserId} from 'utils/utils';
+import WebSocketClient from "client/web_websocket_client";
+import {
+    initializeBodyClassManager,
+    restoreEssentialBodyClasses,
+} from "utils/body_class_manager";
+import Constants from "utils/constants";
+import DesktopApp from "utils/desktop_api";
+import { isKeyPressed } from "utils/keyboard";
+import { getBrowserTimezone } from "utils/timezone";
+import { isAndroid, isIos } from "utils/user_agent";
+import { doesCookieContainsMMUserId } from "utils/utils";
 
 declare global {
     interface Window {
@@ -37,7 +41,11 @@ export type Props = {
     customProfileAttributesEnabled: boolean;
     actions: {
         autoUpdateTimezone: (deviceTimezone: string) => void;
-        getChannelURLAction: (channelId: string, teamId: string, url: string) => void;
+        getChannelURLAction: (
+            channelId: string,
+            teamId: string,
+            url: string
+        ) => void;
         updateApproximateViewTime: (channelId: string) => void;
         getCustomProfileAttributeFields: () => void;
     };
@@ -46,17 +54,18 @@ export type Props = {
         pathname: string;
         search: string;
     };
-}
+};
 
 export default class LoggedIn extends React.PureComponent<Props> {
     private cleanupDesktopListeners?: () => void;
+    private bodyClassCheckInterval?: NodeJS.Timeout;
 
     constructor(props: Props) {
         super(props);
 
-        const root = document.getElementById('root');
+        const root = document.getElementById("root");
         if (root) {
-            root.className += ' channel-view';
+            root.className += " channel-view";
         }
     }
 
@@ -65,6 +74,9 @@ export default class LoggedIn extends React.PureComponent<Props> {
     }
 
     public componentDidMount(): void {
+        // Initialize body class manager to ensure app__body is always preserved
+        initializeBodyClassManager();
+
         // Initialize websocket
         WebSocketActions.initialize();
 
@@ -76,18 +88,22 @@ export default class LoggedIn extends React.PureComponent<Props> {
         }
 
         // Make sure the websockets close and reset version
-        window.addEventListener('beforeunload', this.handleBeforeUnload);
+        window.addEventListener("beforeunload", this.handleBeforeUnload);
 
         // Listen for focused tab/window state
-        window.addEventListener('focus', this.onFocusListener);
-        window.addEventListener('blur', this.onBlurListener);
+        window.addEventListener("focus", this.onFocusListener);
+        window.addEventListener("blur", this.onBlurListener);
         if (!document.hasFocus()) {
             GlobalActions.emitBrowserFocus(false);
         }
 
         // Listen for user activity and notifications from the Desktop App (if applicable)
-        const offUserActivity = DesktopApp.onUserActivityUpdate(this.updateActiveStatus);
-        const offNotificationClicked = DesktopApp.onNotificationClicked(this.clickNotification);
+        const offUserActivity = DesktopApp.onUserActivityUpdate(
+            this.updateActiveStatus
+        );
+        const offNotificationClicked = DesktopApp.onNotificationClicked(
+            this.clickNotification
+        );
         this.cleanupDesktopListeners = () => {
             offUserActivity();
             offNotificationClicked();
@@ -95,52 +111,77 @@ export default class LoggedIn extends React.PureComponent<Props> {
 
         // Device tracking setup
         if (isIos()) {
-            document.body.classList.add('ios');
+            document.body.classList.add("ios");
         } else if (isAndroid()) {
-            document.body.classList.add('android');
+            document.body.classList.add("android");
         }
 
         if (!this.props.currentUser) {
-            const rootEl = document.getElementById('root');
+            const rootEl = document.getElementById("root");
             if (rootEl) {
-                rootEl.setAttribute('class', '');
+                rootEl.setAttribute("class", "");
             }
-            GlobalActions.emitUserLoggedOutEvent('/login?redirect_to=' + encodeURIComponent(`${this.props.location.pathname}${this.props.location.search}`), true, false);
+            GlobalActions.emitUserLoggedOutEvent(
+                "/login?redirect_to=" +
+                    encodeURIComponent(
+                        `${this.props.location.pathname}${this.props.location.search}`
+                    ),
+                true,
+                false
+            );
         }
 
         // Prevent backspace from navigating back a page
-        window.addEventListener('keydown', this.handleBackSpace);
+        window.addEventListener("keydown", this.handleBackSpace);
 
         if (this.isValidState() && !this.props.mfaRequired) {
             BrowserStore.signalLogin();
             DesktopApp.signalLogin();
         }
+
+        // Set up periodic check to restore essential body classes
+        // This helps ensure app__body is never accidentally removed
+        this.bodyClassCheckInterval = setInterval(() => {
+            restoreEssentialBodyClasses();
+        }, 1000); // Check every second
     }
 
     public componentWillUnmount(): void {
         WebSocketActions.close();
 
-        window.removeEventListener('keydown', this.handleBackSpace);
-        window.removeEventListener('focus', this.onFocusListener);
-        window.removeEventListener('blur', this.onBlurListener);
+        window.removeEventListener("keydown", this.handleBackSpace);
+        window.removeEventListener("focus", this.onFocusListener);
+        window.removeEventListener("blur", this.onBlurListener);
 
         this.cleanupDesktopListeners?.();
+
+        // Clear the body class check interval
+        if (this.bodyClassCheckInterval) {
+            clearInterval(this.bodyClassCheckInterval);
+        }
     }
 
     public render(): React.ReactNode {
         if (!this.isValidState()) {
-            return <LoadingScreen/>;
+            return <LoadingScreen />;
         }
 
         if (this.props.mfaRequired) {
-            if (this.props.location.pathname !== '/mfa/setup') {
-                return <Redirect to={'/mfa/setup'}/>;
+            if (this.props.location.pathname !== "/mfa/setup") {
+                return <Redirect to={"/mfa/setup"} />;
             }
-        } else if (this.props.location.pathname === '/mfa/confirm') {
+        } else if (this.props.location.pathname === "/mfa/confirm") {
             // Nothing to do. Wait for MFA flow to complete before prompting TOS.
         } else if (this.props.showTermsOfService) {
-            if (this.props.location.pathname !== '/terms_of_service') {
-                return <Redirect to={'/terms_of_service?redirect_to=' + encodeURIComponent(this.props.location.pathname)}/>;
+            if (this.props.location.pathname !== "/terms_of_service") {
+                return (
+                    <Redirect
+                        to={
+                            "/terms_of_service?redirect_to=" +
+                            encodeURIComponent(this.props.location.pathname)
+                        }
+                    />
+                );
             }
         }
 
@@ -160,7 +201,11 @@ export default class LoggedIn extends React.PureComponent<Props> {
         GlobalActions.emitBrowserFocus(false);
     };
 
-    private updateActiveStatus = (userIsActive: boolean, idleTime: number, manual: boolean) => {
+    private updateActiveStatus = (
+        userIsActive: boolean,
+        idleTime: number,
+        manual: boolean
+    ) => {
         if (!this.props.currentUser) {
             return;
         }
@@ -171,7 +216,11 @@ export default class LoggedIn extends React.PureComponent<Props> {
         }
     };
 
-    private clickNotification = (channelId: string, teamId: string, url: string) => {
+    private clickNotification = (
+        channelId: string,
+        teamId: string,
+        url: string
+    ) => {
         window.focus();
 
         // navigate to the appropriate channel
@@ -179,7 +228,7 @@ export default class LoggedIn extends React.PureComponent<Props> {
     };
 
     private handleBackSpace = (e: KeyboardEvent): void => {
-        const excludedElements = ['input', 'textarea'];
+        const excludedElements = ["input", "textarea"];
         const targetElement = e.target as HTMLElement;
 
         if (!targetElement) {
@@ -187,11 +236,12 @@ export default class LoggedIn extends React.PureComponent<Props> {
         }
 
         const targetsTagName = targetElement.tagName.toLowerCase();
-        const isTargetNotContentEditable = targetElement.getAttribute?.('contenteditable') !== 'true';
+        const isTargetNotContentEditable =
+            targetElement.getAttribute?.("contenteditable") !== "true";
 
         if (
             isKeyPressed(e, Constants.KeyCodes.BACKSPACE) &&
-            !(excludedElements.includes(targetsTagName)) &&
+            !excludedElements.includes(targetsTagName) &&
             isTargetNotContentEditable
         ) {
             e.preventDefault();
@@ -200,9 +250,15 @@ export default class LoggedIn extends React.PureComponent<Props> {
 
     private handleBeforeUnload = (): void => {
         // remove the event listener to prevent getting stuck in a loop
-        window.removeEventListener('beforeunload', this.handleBeforeUnload);
-        if (doesCookieContainsMMUserId() && this.props.currentChannelId && !this.props.isCurrentChannelManuallyUnread) {
-            this.props.actions.updateApproximateViewTime(this.props.currentChannelId);
+        window.removeEventListener("beforeunload", this.handleBeforeUnload);
+        if (
+            doesCookieContainsMMUserId() &&
+            this.props.currentChannelId &&
+            !this.props.isCurrentChannelManuallyUnread
+        ) {
+            this.props.actions.updateApproximateViewTime(
+                this.props.currentChannelId
+            );
         }
         WebSocketActions.close();
     };
