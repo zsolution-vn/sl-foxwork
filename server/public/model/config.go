@@ -291,7 +291,7 @@ const (
 )
 
 func GetDefaultAppCustomURLSchemes() []string {
-	return []string{"mmauth://", "mmauthbeta://"}
+	return []string{"foxwork://", "foxwork://"}
 }
 
 var ServerTLSSupportedCiphers = map[string]uint16{

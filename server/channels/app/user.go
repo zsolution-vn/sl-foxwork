@@ -351,7 +351,10 @@ func (a *App) createUserOrGuest(rctx request.CTX, user *model.User, guest bool) 
 
 func (a *App) CreateOAuthUser(rctx request.CTX, service string, userData io.Reader, inviteToken string, inviteId string, tokenUser *model.User) (*model.User, *model.AppError) {
 	if !*a.Config().TeamSettings.EnableUserCreation {
-		return nil, model.NewAppError("CreateOAuthUser", "api.user.create_user.disabled.app_error", nil, "", http.StatusNotImplemented)
+		// Allow user creation for OIDC even when user creation is disabled in config
+		if service != model.ServiceOpenid {
+			return nil, model.NewAppError("CreateOAuthUser", "api.user.create_user.disabled.app_error", nil, "", http.StatusNotImplemented)
+		}
 	}
 
 	provider, e := a.getSSOProvider(service)
@@ -400,6 +403,10 @@ func (a *App) CreateOAuthUser(rctx request.CTX, service string, userData io.Read
 			if _, err := a.Srv().Store().User().UpdateAuthData(userByEmail.Id, user.AuthService, user.AuthData, "", false); err != nil {
 				// if the user is not updated, write a warning to the log, but don't prevent user login
 				rctx.Logger().Warn("Error attempting to update user AuthData", mlog.Err(err))
+			}
+			// For signup flow, also honor invite token/id to add to team if provided
+			if invErr := a.AddUserToTeamByInviteIfNeeded(rctx, userByEmail, inviteToken, inviteId); invErr != nil {
+				rctx.Logger().Warn("Failed to add user to team", mlog.Err(invErr))
 			}
 			return userByEmail, nil
 		}

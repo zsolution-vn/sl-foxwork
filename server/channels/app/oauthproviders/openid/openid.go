@@ -44,7 +44,6 @@ func userFromOpenID(logger mlog.LoggerIFace, oi *openIDUser) (*model.User, error
 	if oi.Subject == "" && oi.Email == "" {
 		return nil, errors.New("openid user: both sub and email are empty")
 	}
-	logger.Debug("OpenID user", mlog.String("subject", oi.Subject), mlog.String("email", oi.Email), mlog.String("preferred_username", oi.PreferredUsername), mlog.String("name", oi.Name), mlog.String("given_name", oi.GivenName), mlog.String("family_name", oi.FamilyName))
 
 	user := &model.User{}
 
