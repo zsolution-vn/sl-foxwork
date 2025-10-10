@@ -1,29 +1,28 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import React from 'react';
-import {Modal} from 'react-bootstrap';
-import {FormattedMessage} from 'react-intl';
+import React from "react";
+import { Modal } from "react-bootstrap";
+import { FormattedMessage } from "react-intl";
 
-import type {ClientConfig, ClientLicense} from '@mattermost/types/config';
+import type { ClientConfig, ClientLicense } from "@mattermost/types/config";
 
-import {Client4} from 'mattermost-redux/client';
+import { Client4 } from "mattermost-redux/client";
 
-import ExternalLink from 'components/external_link';
-import Nbsp from 'components/html_entities/nbsp';
-import MattermostLogo from 'components/widgets/icons/mattermost_logo';
+import ExternalLink from "components/external_link";
+import Nbsp from "components/html_entities/nbsp";
+import MattermostLogo from "components/widgets/icons/mattermost_logo";
 
-import {AboutLinks} from 'utils/constants';
+import { AboutLinks } from "utils/constants";
 
-import AboutBuildModalCloud from './about_build_modal_cloud/about_build_modal_cloud';
+import AboutBuildModalCloud from "./about_build_modal_cloud/about_build_modal_cloud";
 
 type SocketStatus = {
     connected: boolean;
     serverHostname: string | undefined;
-}
+};
 
 type Props = {
-
     /**
      * Function called after the modal has been hidden
      */
@@ -62,11 +61,11 @@ export default class AboutBuildModal extends React.PureComponent<Props, State> {
             try {
                 const result = await Client4.getLicenseLoadMetric();
                 if (result?.load) {
-                    this.setState({loadMetric: result.load});
+                    this.setState({ loadMetric: result.load });
                 }
             } catch (e) {
                 // eslint-disable-next-line no-console
-                console.error('Error fetching load metric:', e);
+                console.error("Error fetching load metric:", e);
             }
         };
 
@@ -74,7 +73,7 @@ export default class AboutBuildModal extends React.PureComponent<Props, State> {
     }
 
     doHide = () => {
-        this.setState({show: false});
+        this.setState({ show: false });
         this.props.onExited();
     };
 
@@ -82,7 +81,7 @@ export default class AboutBuildModal extends React.PureComponent<Props, State> {
         const config = this.props.config;
         const license = this.props.license;
 
-        if (license.Cloud === 'true') {
+        if (license.Cloud === "true") {
             return (
                 <AboutBuildModalCloud
                     {...this.props}
@@ -94,78 +93,79 @@ export default class AboutBuildModal extends React.PureComponent<Props, State> {
 
         let title = (
             <FormattedMessage
-                id='about.teamEditiont0'
-                defaultMessage='Team Edition'
+                id="about.teamEditiont0"
+                defaultMessage="Team Edition"
             />
         );
 
         let subTitle = (
             <FormattedMessage
-                id='about.teamEditionSt'
-                defaultMessage='All your team communication in one place, instantly searchable and accessible anywhere.'
+                id="about.teamEditionSt"
+                defaultMessage="All your team communication in one place, instantly searchable and accessible anywhere."
             />
         );
 
         let learnMore = (
             <div>
                 <FormattedMessage
-                    id='about.teamEditionLearn'
-                    defaultMessage='Join the Mattermost community at '
+                    id="about.teamEditionLearn"
+                    defaultMessage="Join the Mattermost community at "
                 />
                 <ExternalLink
-                    location='about_build_modal'
-                    href='https://mattermost.com/community/'
+                    location="about_build_modal"
+                    href="https://mattermost.com/community/"
                 >
-                    {'mattermost.com/community/'}
+                    {"mattermost.com/community/"}
                 </ExternalLink>
             </div>
         );
 
         let licensee;
-        if (config.BuildEnterpriseReady === 'true') {
+        if (config.BuildEnterpriseReady === "true") {
             title = (
                 <FormattedMessage
-                    id='about.teamEditiont1'
-                    defaultMessage='Enterprise Edition'
+                    id="about.teamEditiont1"
+                    defaultMessage="Enterprise Edition"
                 />
             );
 
             subTitle = (
                 <FormattedMessage
-                    id='about.enterpriseEditionSt'
-                    defaultMessage='Modern communication from behind your firewall.'
+                    id="about.enterpriseEditionSt"
+                    defaultMessage="Modern communication from behind your firewall."
                 />
             );
 
             learnMore = (
                 <div>
                     <FormattedMessage
-                        id='about.enterpriseEditionLearn'
-                        defaultMessage='Learn more about Enterprise Edition at '
+                        id="about.enterpriseEditionLearn"
+                        defaultMessage="Learn more about Enterprise Edition at "
                     />
                     <ExternalLink
-                        location='about_build_modal'
-                        href='https://mattermost.com/'
+                        location="about_build_modal"
+                        href="https://mattermost.com/"
                     >
-                        {'mattermost.com'}
+                        {"mattermost.com"}
                     </ExternalLink>
                 </div>
             );
 
-            if (license.IsLicensed === 'true') {
+            if (license.IsLicensed === "true") {
                 title = (
                     <FormattedMessage
-                        id='about.enterpriseEditione1'
-                        defaultMessage='Enterprise Edition'
+                        id="about.enterpriseEditione1"
+                        defaultMessage="Enterprise Edition"
                     />
                 );
                 licensee = (
-                    <div className='form-group'>
+                    <div className="form-group">
                         <FormattedMessage
-                            id='about.licensed'
-                            defaultMessage='Licensed to:'
+                            id="about.licensed"
+                            defaultMessage="Licensed to:"
                         />
-                        <Nbsp/>{license.Company}
+                        <Nbsp />
+                        {license.Company}
                     </div>
                 );
             }
@@ -173,54 +173,60 @@ export default class AboutBuildModal extends React.PureComponent<Props, State> {
 
         const termsOfService = (
             <ExternalLink
-                location='about_build_modal'
-                id='tosLink'
+                location="about_build_modal"
+                id="tosLink"
                 href={AboutLinks.TERMS_OF_SERVICE}
             >
                 <FormattedMessage
-                    id='about.tos'
-                    defaultMessage='Terms of Use'
+                    id="about.tos"
+                    defaultMessage="Terms of Use"
                 />
             </ExternalLink>
         );
 
         const privacyPolicy = (
             <ExternalLink
-                id='privacyLink'
-                location='about_build_modal'
+                id="privacyLink"
+                location="about_build_modal"
                 href={AboutLinks.PRIVACY_POLICY}
             >
                 <FormattedMessage
-                    id='about.privacy'
-                    defaultMessage='Privacy Policy'
+                    id="about.privacy"
+                    defaultMessage="Privacy Policy"
                 />
             </ExternalLink>
         );
 
         const buildnumber: JSX.Element | null = (
-            <div data-testid='aboutModalBuildNumber'>
+            <div data-testid="aboutModalBuildNumber">
                 <FormattedMessage
-                    id='about.buildnumber'
-                    defaultMessage='Build Number:'
+                    id="about.buildnumber"
+                    defaultMessage="Build Number:"
                 />
-                <span id='buildnumberString'>{'\u00a0' + (config.BuildNumber === 'dev' ? 'n/a' : config.BuildNumber)}</span>
+                <span id="buildnumberString">
+                    {"\u00a0" +
+                        (config.BuildNumber === "dev"
+                            ? "n/a"
+                            : config.BuildNumber)}
+                </span>
             </div>
         );
 
-        const mmversion: string | undefined = config.BuildNumber === 'dev' ? config.BuildNumber : config.Version;
+        const mmversion: string | undefined =
+            config.BuildNumber === "dev" ? config.BuildNumber : config.Version;
 
         let serverHostname;
         if (!this.props.socketStatus.connected) {
             serverHostname = (
                 <div>
                     <FormattedMessage
-                        id='about.serverHostname'
-                        defaultMessage='Hostname:'
+                        id="about.serverHostname"
+                        defaultMessage="Hostname:"
                     />
-                    <Nbsp/>
+                    <Nbsp />
                     <FormattedMessage
-                        id='about.serverDisconnected'
-                        defaultMessage='disconnected'
+                        id="about.serverDisconnected"
+                        defaultMessage="disconnected"
                     />
                 </div>
             );
@@ -228,10 +234,10 @@ export default class AboutBuildModal extends React.PureComponent<Props, State> {
             serverHostname = (
                 <div>
                     <FormattedMessage
-                        id='about.serverHostname'
-                        defaultMessage='Hostname:'
+                        id="about.serverHostname"
+                        defaultMessage="Hostname:"
                     />
-                    <Nbsp/>
+                    <Nbsp />
                     {this.props.socketStatus.serverHostname}
                 </div>
             );
@@ -239,13 +245,13 @@ export default class AboutBuildModal extends React.PureComponent<Props, State> {
             serverHostname = (
                 <div>
                     <FormattedMessage
-                        id='about.serverHostname'
-                        defaultMessage='Hostname:'
+                        id="about.serverHostname"
+                        defaultMessage="Hostname:"
                     />
-                    <Nbsp/>
+                    <Nbsp />
                     <FormattedMessage
-                        id='about.serverUnknown'
-                        defaultMessage='server did not provide hostname'
+                        id="about.serverUnknown"
+                        defaultMessage="server did not provide hostname"
                     />
                 </div>
             );
@@ -254,164 +260,47 @@ export default class AboutBuildModal extends React.PureComponent<Props, State> {
         let loadMetricComponent: JSX.Element | null = null;
         if (this.state.loadMetric !== null && this.state.loadMetric > 0) {
             loadMetricComponent = (
-                <div data-testid='aboutModalLoadMetric'>
+                <div data-testid="aboutModalLoadMetric">
                     <FormattedMessage
-                        id='about.loadmetric'
-                        defaultMessage='Load Metric:'
+                        id="about.loadmetric"
+                        defaultMessage="Load Metric:"
                     />
-                    <span>{'\u00a0' + this.state.loadMetric}</span>
+                    <span>{"\u00a0" + this.state.loadMetric}</span>
                 </div>
             );
         }
 
         return (
             <Modal
-                dialogClassName='a11y__modal about-modal'
+                dialogClassName="a11y__modal about-modal"
                 show={this.state.show}
                 onHide={this.doHide}
                 onExited={this.props.onExited}
-                role='none'
-                aria-labelledby='aboutModalLabel'
+                role="none"
+                aria-labelledby="aboutModalLabel"
             >
                 <Modal.Header closeButton={true}>
-                    <Modal.Title
-                        componentClass='h1'
-                        id='aboutModalLabel'
-                    >
+                    <Modal.Title componentClass="h1" id="aboutModalLabel">
                         <FormattedMessage
-                            id='about.title'
+                            id="about.title"
                             values={{
-                                appTitle: config.SiteName || 'Mattermost',
+                                appTitle: config.SiteName || "Mattermost",
                             }}
-                            defaultMessage='About {appTitle}'
+                            defaultMessage="About {appTitle}"
                         />
                     </Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    <div className='about-modal__content'>
+                    <div className="about-modal__content">
                         {/* <div className='about-modal__logo'>
                             <MattermostLogo/>
                         </div> */}
                         <div>
-                            <h3 className='about-modal__title'>
-                                <strong>
-                                    {'Foxwork'}
-                                </strong>
+                            <h3 className="about-modal__title">
+                                <strong>{"Foxwork"}</strong>
                             </h3>
-                            {/* <p className='about-modal__subtitle pb-2'>
-                                {subTitle}
-                            </p>
-                            <div className='form-group less'>
-                                <div data-testid='aboutModalVersion'>
-                                    <FormattedMessage
-                                        id='about.version'
-                                        defaultMessage='Mattermost Version:'
-                                    />
-                                    <span id='versionString'>
-                                        {'\u00a0' + mmversion}
-                                    </span>
-                                </div>
-                                {loadMetricComponent}
-                                <div data-testid='aboutModalDBVersionString'>
-                                    <FormattedMessage
-                                        id='about.dbversion'
-                                        defaultMessage='Database Schema Version:'
-                                    />
-                                    <span id='dbversionString'>
-                                        {'\u00a0' + config.SchemaVersion}
-                                    </span>
-                                </div>
-                                {buildnumber}
-                                <div>
-                                    <FormattedMessage
-                                        id='about.database'
-                                        defaultMessage='Database:'
-                                    />
-                                    {'\u00a0' + config.SQLDriverName}
-                                </div> */}
-                                {/* {serverHostname}
-                            </div> */}
-                            {/* {licensee} */}
                         </div>
                     </div>
-                    {/* <div className='about-modal__footer'> */}
-                        {/* {learnMore} */}
-                        {/* <div className='form-group'>
-                            <div className='about-modal__copyright'>
-                                <FormattedMessage
-                                    id='about.copyright'
-                                    defaultMessage='Copyright 2015 - {currentYear} Mattermost, Inc. All rights reserved'
-                                    values={{
-                                        currentYear: new Date().getFullYear(),
-                                    }}
-                                />
-                            </div>
-                            <div className='about-modal__links'>
-                                {termsOfService}
-                                {' - '}
-                                {privacyPolicy}
-                            </div>
-                        </div> */}
-                    {/* </div> */}
-                    {/* <div className='about-modal__notice form-group pt-3'>
-                        <p>
-                            <FormattedMessage
-                                id='about.notice'
-                                defaultMessage='Mattermost is made possible by the open source software used in our <linkServer>server</linkServer>, <linkDesktop>desktop</linkDesktop> and <linkMobile>mobile</linkMobile> apps.'
-                                values={{
-                                    linkServer: (msg: React.ReactNode) => (
-                                        <ExternalLink
-                                            location='about_build_modal'
-                                            href='https://github.com/mattermost/mattermost-server/blob/master/NOTICE.txt'
-                                        >
-                                            {msg}
-                                        </ExternalLink>
-                                    ),
-                                    linkDesktop: (msg: React.ReactNode) => (
-                                        <ExternalLink
-                                            location='about_build_modal'
-                                            href='https://github.com/mattermost/desktop/blob/master/NOTICE.txt'
-                                        >
-                                            {msg}
-                                        </ExternalLink>
-                                    ),
-                                    linkMobile: (msg: React.ReactNode) => (
-                                        <ExternalLink
-                                            location='about_build_modal'
-                                            href='https://github.com/mattermost/mattermost-mobile/blob/master/NOTICE.txt'
-                                        >
-                                            {msg}
-                                        </ExternalLink>
-                                    ),
-                                }}
-                            />
-                        </p>
-                    </div>
-                    <div className='about-modal__hash'>
-                        <p>
-                            <FormattedMessage
-                                id='about.hash'
-                                defaultMessage='Build Hash:'
-                            />
-                            <Nbsp/>
-                            {config.BuildHash}
-                            <br/>
-                            <FormattedMessage
-                                id='about.hashee'
-                                defaultMessage='EE Build Hash:'
-                            />
-                            <Nbsp/>
-                            {config.BuildHashEnterprise}
-                        </p>
-                        <p>
-                            <FormattedMessage
-                                id='about.date'
-                                defaultMessage='Build Date:'
-                            />
-                            <Nbsp/>
-                            {config.BuildDate}
-                        </p>
-                    </div> */}
                 </Modal.Body>
             </Modal>
         );
