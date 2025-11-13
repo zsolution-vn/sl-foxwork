@@ -1,0 +1,19 @@
+cluster:
+  enabled: true
+  lease:
+    namespace: default
+    name: mattermost-ha
+    leaseDurationSeconds: 15
+    renewDeadlineSeconds: 10
+    retryPeriodSeconds: 2
+  gossip:
+    port: 7946
+    advertiseAddress: ""
+    bindAddress: "0.0.0.0"
+
+serviceAccount:
+  create: true
+  name: ""
+
+
+

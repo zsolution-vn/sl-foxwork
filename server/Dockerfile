@@ -64,13 +64,14 @@ ENV GOWORK=auto
 
 # Copy go.mod, go.sum và go.work từ thư mục server để tối ưu cache deps và đồng bộ workspace
 COPY server/go.mod server/go.sum server/go.work ./
-
-# Copy source code của server
-COPY server/ ./
+COPY server/public/go.mod server/public/go.sum ./public/
 
 # Đồng bộ workspace rồi tải dependencies sau khi toàn bộ source đã có
 RUN go work sync && \
     go mod download
+
+# Copy source code của server
+COPY server/ ./
 
 # Build Mattermost server binary theo cấu hình air.toml
 # cmd = "go build -o ./tmp/mattermost-dev ./cmd/mattermost"

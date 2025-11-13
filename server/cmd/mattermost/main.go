@@ -16,6 +16,9 @@ import (
 	// Enterprise Imports
 	_ "github.com/mattermost/mattermost/server/v8/enterprise"
 
+	// HA cluster registration
+	_ "github.com/mattermost/mattermost/server/v8/cluster/register"
+
 	godotenv "github.com/joho/godotenv"
 )
 

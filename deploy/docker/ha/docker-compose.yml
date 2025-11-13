@@ -1,0 +1,87 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:18
+    container_name: mm-ha-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mattermost
+      POSTGRES_USER: mmuser
+      POSTGRES_PASSWORD: mostest
+    volumes:
+      - mm-postgres-data:/var/lib/postgresql/data
+    networks:
+      - mm-ha
+
+  mattermost-1:
+    build:
+      context: ../../..
+      dockerfile: Dockerfile
+    image: mattermost-ha:latest
+    container_name: mm-ha-node1
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      MM_SQLSETTINGS_DRIVERNAME: postgres
+      MM_SQLSETTINGS_DATASOURCE: postgres://mmuser:mostest@db:5432/mattermost?sslmode=disable&connect_timeout=10
+      MM_CLUSTERSETTINGS_ENABLE: "true"
+      MM_CLUSTERSETTINGS_CLUSTERNAME: mm-ha
+      MM_CLUSTERSETTINGS_BINDADDRESS: 0.0.0.0
+      MM_CLUSTERSETTINGS_ADVERTISEADDRESS: mattermost-1
+      MM_CLUSTERSETTINGS_GOSSIPPORT: "7946"
+      MM_CLUSTERSETTINGS_GOSSIPPEERADDRESSES: >
+        ["mattermost-1:7946","mattermost-2:7946"]
+      MM_CLUSTERSETTINGS_LEADERELECTIONMODE: db
+      MM_SERVICESETTINGS_LISTENADDRESS: ":8065"
+      MM_LOGSETTINGS_ENABLECONSOLE: "true"
+      MM_LOGSETTINGS_CONSOLELEVEL: INFO
+    ports:
+      - "8065:8065"
+    volumes:
+      - mm-node1-data:/mattermost/data
+    networks:
+      - mm-ha
+
+  mattermost-2:
+    build:
+      context: ../../..
+      dockerfile: Dockerfile
+    image: mattermost-ha:latest
+    container_name: mm-ha-node2
+    restart: unless-stopped
+    depends_on:
+      - db
+    environment:
+      MM_SQLSETTINGS_DRIVERNAME: postgres
+      MM_SQLSETTINGS_DATASOURCE: postgres://mmuser:mostest@db:5432/mattermost?sslmode=disable&connect_timeout=10
+      MM_CLUSTERSETTINGS_ENABLE: "true"
+      MM_CLUSTERSETTINGS_CLUSTERNAME: mm-ha
+      MM_CLUSTERSETTINGS_BINDADDRESS: 0.0.0.0
+      MM_CLUSTERSETTINGS_ADVERTISEADDRESS: mattermost-2
+      MM_CLUSTERSETTINGS_GOSSIPPORT: "7946"
+      MM_CLUSTERSETTINGS_GOSSIPPEERADDRESSES: >
+        ["mattermost-1:7946","mattermost-2:7946"]
+      MM_CLUSTERSETTINGS_LEADERELECTIONMODE: db
+      MM_SERVICESETTINGS_LISTENADDRESS: ":8065"
+      MM_LOGSETTINGS_ENABLECONSOLE: "true"
+      MM_LOGSETTINGS_CONSOLELEVEL: INFO
+    ports:
+      - "8066:8065"
+    volumes:
+      - mm-node2-data:/mattermost/data
+    networks:
+      - mm-ha
+
+networks:
+  mm-ha:
+    driver: bridge
+
+volumes:
+  mm-postgres-data:
+  mm-node1-data:
+  mm-node2-data:
+
+
+

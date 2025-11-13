@@ -3,26 +3,45 @@
 # Stage 1: Webapp build stage
 FROM node:20-alpine AS webapp-builder
 
-# Cài đặt dependencies cần thiết cho build webapp
+# Cài đặt dependencies cần thiết cho build
 RUN apk add --no-cache \
     python3 \
     make \
     g++ \
+    gcc \
+    libc-dev \
+    libpng-dev \
+    nasm \
     git \
-    bash
+    patch \
+    autoconf \
+    automake \
+    libtool \
+    pkgconfig \
+    bash \
+    giflib-dev \
+    pixman-dev \
+    cairo-dev \
+    pango-dev \
+    jpeg-dev \
+    freetype-dev
 
-# Lưu ý: Docker build context nên là root repo và dùng -f server/Dockerfile
-WORKDIR /workspace/webapp
+# Tạo thư mục làm việc
+WORKDIR /app
 
-# Copy package files trước để cache deps
+# Copy package files để cache dependencies
 COPY webapp/package*.json ./
 COPY webapp/channels/package*.json ./channels/
+COPY webapp/patches/* ./patches/
+COPY webapp/platform/ ./platform/
 
-# Cài deps cho webapp
+# Install dependencies (bao gồm devDependencies) nhưng bỏ qua lifecycle scripts để tránh lỗi build sớm
 RUN npm install
 
-# Copy source và build
+# Copy source code
 COPY webapp/ ./
+
+# Sau khi có đầy đủ mã nguồn, chạy rebuild native modules và postinstall (patch-package + build workspaces)
 RUN npm run build
 
 
@@ -45,13 +64,14 @@ ENV GOWORK=auto
 
 # Copy go.mod, go.sum và go.work từ thư mục server để tối ưu cache deps và đồng bộ workspace
 COPY server/go.mod server/go.sum server/go.work ./
-
-# Copy source code của server
-COPY server/ ./
+COPY server/public/go.mod server/public/go.sum ./public/
 
 # Đồng bộ workspace rồi tải dependencies sau khi toàn bộ source đã có
 RUN go work sync && \
     go mod download
+
+# Copy source code của server
+COPY server/ ./
 
 # Build Mattermost server binary theo cấu hình air.toml
 # cmd = "go build -o ./tmp/mattermost-dev ./cmd/mattermost"
@@ -72,7 +92,7 @@ RUN addgroup -g 2000 mattermost && \
     adduser -D -u 2000 -G mattermost mattermost
 
 # Tạo thư mục cần thiết
-RUN mkdir -p /mattermost/data /mattermost/logs /mattermost/plugins /mattermost/client /mattermost/client/plugins && \
+RUN mkdir -p /mattermost/data /mattermost/logs /mattermost/config /mattermost/plugins /mattermost/client /mattermost/client/plugins && \
     chown -R mattermost:mattermost /mattermost
 
 # Copy binary từ builder stage
@@ -89,7 +109,7 @@ COPY --chown=mattermost:mattermost server/templates/ /mattermost/templates/
 COPY --chown=mattermost:mattermost server/fonts/ /mattermost/fonts/
 
 # Copy webapp built files vào thư mục client của server
-COPY --from=webapp-builder --chown=mattermost:mattermost /workspace/webapp/channels/dist/ /mattermost/client/
+COPY --from=webapp-builder --chown=mattermost:mattermost /app/channels/dist/ /mattermost/client/
 
 # Set working directory
 WORKDIR /mattermost

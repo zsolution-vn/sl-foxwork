@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-gossip
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: {{ .Release.Name }}
+  ports:
+    - name: gossip-tcp
+      port: {{ .Values.cluster.gossip.port }}
+      protocol: TCP
+      targetPort: {{ .Values.cluster.gossip.port }}
+    - name: gossip-udp
+      port: {{ .Values.cluster.gossip.port }}
+      protocol: UDP
+      targetPort: {{ .Values.cluster.gossip.port }}
+
+
+

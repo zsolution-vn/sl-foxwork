@@ -1054,6 +1054,8 @@ type ClusterSettings struct {
 	EnableGossipEncryption             *bool `access:"environment_high_availability,write_restrictable,cloud_restrictable"`
 	ReadOnlyConfig                     *bool `access:"environment_high_availability,write_restrictable,cloud_restrictable"`
 	GossipPort                         *int  `access:"environment_high_availability,write_restrictable,cloud_restrictable"` // telemetry: none
+	LeaderElectionMode                 *string  `access:"environment_high_availability,write_restrictable,cloud_restrictable"`
+	GossipPeerAddresses                []string `access:"environment_high_availability,write_restrictable,cloud_restrictable"`
 }
 
 func (s *ClusterSettings) SetDefaults() {
@@ -1103,6 +1105,14 @@ func (s *ClusterSettings) SetDefaults() {
 
 	if s.GossipPort == nil {
 		s.GossipPort = NewPointer(8074)
+	}
+
+	if s.LeaderElectionMode == nil {
+		s.LeaderElectionMode = NewPointer("k8s")
+	}
+
+	if s.GossipPeerAddresses == nil {
+		s.GossipPeerAddresses = []string{}
 	}
 }
 
