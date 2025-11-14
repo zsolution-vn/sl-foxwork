@@ -1,9 +1,9 @@
 replicaCount: 3
 
 image:
-  repository: mattermost/mattermost-enterprise-edition
+  repository: vcr.vngcloud.vn/109605-salely/zs-foxwork-server-sevice
   pullPolicy: IfNotPresent
-  tag: "9.0.0"
+  tag: "prod2d2cf5d0"
 
 imagePullSecrets: []
 
