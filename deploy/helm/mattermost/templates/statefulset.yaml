@@ -40,13 +40,40 @@ spec:
           containerPort: {{ .Values.mattermost.config.ClusterSettings.GossipPort }}
           protocol: TCP
         env:
+        - name: MM_SQLSETTINGS_DRIVERNAME
+          value: {{ .Values.mattermost.config.SqlSettings.DriverName | quote }}
+        - name: MM_SQLSETTINGS_DATASOURCE
+          value: {{ include "mattermost.postgresql.datasource" . | quote }}
         - name: MM_CONFIG
-          value: "/mattermost/config/config.json"
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "mattermost.fullname" . }}-postgres
-              key: postgres-password
+          value: {{ include "mattermost.postgresql.datasource" . | quote }}
+        - name: MM_CLUSTERSETTINGS_ENABLE
+          value: {{ ternary "true" "false" .Values.mattermost.config.ClusterSettings.Enable | quote }}
+        - name: MM_CLUSTERSETTINGS_CLUSTERNAME
+          value: {{ .Values.mattermost.config.ClusterSettings.ClusterName | quote }}
+        - name: MM_CLUSTERSETTINGS_BINDADDRESS
+          value: {{ .Values.mattermost.config.ClusterSettings.BindAddress | quote }}
+        - name: MM_CLUSTERSETTINGS_GOSSIPPORT
+          value: {{ .Values.mattermost.config.ClusterSettings.GossipPort | quote }}
+        - name: MM_CLUSTERSETTINGS_LEADERELECTIONMODE
+          value: {{ .Values.mattermost.config.ClusterSettings.LeaderElectionMode | quote }}
+        - name: MM_CLUSTERSETTINGS_LEADERELECTIONK8SNAMESPACE
+          value: {{ include "mattermost.lease.namespace" . | quote }}
+        - name: MM_CLUSTERSETTINGS_LEADERELECTIONK8SLEASENAME
+          value: {{ include "mattermost.lease.name" . | quote }}
+        - name: MM_HIGHAVAILABILITYSETTINGS_ENABLE
+          value: {{ ternary "true" "false" .Values.mattermost.config.HighAvailabilitySettings.Enable | quote }}
+        - name: MM_HIGHAVAILABILITYSETTINGS_READONLYCONFIG
+          value: {{ ternary "true" "false" .Values.mattermost.config.HighAvailabilitySettings.ReadOnlyConfig | quote }}
+        - name: MM_SERVICESETTINGS_LISTENADDRESS
+          value: {{ .Values.mattermost.config.ServiceSettings.ListenAddress | quote }}
+        - name: MM_SERVICESETTINGS_SITEURL
+          value: {{ .Values.mattermost.config.ServiceSettings.SiteURL | quote }}
+        - name: MM_LOGSETTINGS_ENABLECONSOLE
+          value: {{ ternary "true" "false" .Values.mattermost.config.LogSettings.EnableConsole | quote }}
+        - name: MM_LOGSETTINGS_CONSOLELEVEL
+          value: {{ .Values.mattermost.config.LogSettings.ConsoleLevel | quote }}
+        - name: MM_LOGSETTINGS_CONSOLEJSON
+          value: {{ ternary "true" "false" .Values.mattermost.config.LogSettings.ConsoleJson | quote }}
         - name: POD_NAME
           valueFrom:
             fieldRef:
@@ -55,28 +82,6 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.namespace
-        - name: MM_CLUSTERSETTINGS_ADVERTISEADDRESS
-          value: "$(POD_NAME).{{ include "mattermost.fullname" . }}-headless.$(POD_NAMESPACE).svc.cluster.local"
-        - name: MM_CLUSTERSETTINGS_ENABLE
-          value: "{{ .Values.mattermost.config.ClusterSettings.Enable }}"
-        - name: MM_CLUSTERSETTINGS_CLUSTERNAME
-          value: "{{ .Values.mattermost.config.ClusterSettings.ClusterName }}"
-        - name: MM_CLUSTERSETTINGS_BINDADDRESS
-          value: "{{ .Values.mattermost.config.ClusterSettings.BindAddress }}"
-        - name: MM_CLUSTERSETTINGS_GOSSIPPORT
-          value: "{{ .Values.mattermost.config.ClusterSettings.GossipPort }}"
-        - name: MM_CLUSTERSETTINGS_LEADERELECTIONMODE
-          value: "{{ .Values.mattermost.config.ClusterSettings.LeaderElectionMode }}"
-        - name: MM_CLUSTERSETTINGS_LEADERELECTIONK8SNAMESPACE
-          value: "{{ include "mattermost.lease.namespace" . }}"
-        - name: MM_CLUSTERSETTINGS_LEADERELECTIONK8SLEASENAME
-          value: "{{ include "mattermost.lease.name" . }}"
-        - name: MM_SQLSETTINGS_DRIVERNAME
-          value: "{{ .Values.mattermost.config.SqlSettings.DriverName }}"
-        - name: MM_SQLSETTINGS_DATASOURCE
-          value: "{{ include "mattermost.postgresql.datasource" . }}"
-        - name: MM_CLUSTERSETTINGS_GOSSIPPEERADDRESSES
-          value: {{ include "mattermost.gossip.peers.json" . }}
         volumeMounts:
         - name: config
           mountPath: /mattermost/config

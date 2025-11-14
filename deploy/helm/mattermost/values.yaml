@@ -3,7 +3,9 @@ replicaCount: 3
 image:
   repository: vcr.vngcloud.vn/109605-salely/zs-foxwork-server-sevice
   pullPolicy: IfNotPresent
-  tag: "prodaa40592d"
+  tag: "prod2d2cf5d0"
+
+imagePullSecrets: []
 
 imagePullSecrets:
    - name: vcr-secret
@@ -140,6 +142,9 @@ mattermost:
       EnableConsole: true
       ConsoleLevel: INFO
       ConsoleJson: false
+    HighAvailabilitySettings:
+      Enable: true
+      ReadOnlyConfig: false
     FileSettings:
       DriverName: local
       Directory: "/mattermost/data"
