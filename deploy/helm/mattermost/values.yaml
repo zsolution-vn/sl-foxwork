@@ -1,12 +1,12 @@
 replicaCount: 3
 
 image:
-  repository: mattermost/mattermost-enterprise-edition
+  repository: vcr.vngcloud.vn/109605-salely/zs-foxwork-server-sevice
   pullPolicy: IfNotPresent
-  tag: "9.0.0"
+  tag: "prodaa40592d"
 
-imagePullSecrets: []
-
+imagePullSecrets:
+   - name: vcr-secret
 nameOverride: ""
 fullnameOverride: ""
 
@@ -34,15 +34,19 @@ service:
   targetPort: 8065
 
 ingress:
-  enabled: false
-  className: ""
-  annotations: {}
+  enabled: true
+  className: "nginx"
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
   hosts:
-    - host: mattermost.local
+    - host: work-test.foxia.vn
       paths:
         - path: /
           pathType: Prefix
-  tls: []
+  tls:
+    - hosts:
+        - work-test.foxia.vn
+      secretName: work-test-tls-secret
 
 resources:
   limits:
@@ -69,7 +73,7 @@ mattermost:
   config:
     SqlSettings:
       DriverName: postgres
-      DataSource: "postgres://mmuser:$(POSTGRES_PASSWORD)@postgres:5432/mattermost?sslmode=disable&connect_timeout=10"
+      DataSource: "postgres://mattermostuser:jdrli0iuX46N2RV51v4@49.213.89.28:25432/mattermostdb?sslmode=disable&connect_timeout=10"
       MaxIdleConns: 20
       MaxOpenConns: 300
       ConnMaxLifetimeMilliseconds: 3600000
@@ -84,6 +88,51 @@ mattermost:
       # If mattermost-ha is disabled, these defaults will be used:
       LeaderElectionK8sNamespace: ""  # Will use Release.Namespace if empty
       LeaderElectionK8sLeaseName: ""  # Will use {release-name}-ha if empty
+    extraEnv:
+      - name: MM_CONFIG
+        value: "/mattermost/config/config.json"
+
+      # Database
+      - name: MM_SQLSETTINGS_DRIVERNAME
+        value: "postgres"
+      - name: MM_SQLSETTINGS_DATASOURCE
+        value: "postgres://mattermostuser:jdrli0iuX46N2RV51v4@49.213.89.28:25432/mattermostdb?sslmode=disable&connect_timeout=10"
+
+      # Cluster / HA
+      - name: MM_CLUSTERSETTINGS_ENABLE
+        value: "true"
+      - name: MM_CLUSTERSETTINGS_CLUSTERNAME
+        value: "mattermost-k8s"
+      - name: MM_CLUSTERSETTINGS_BINDADDRESS
+        value: "0.0.0.0"
+      - name: MM_CLUSTERSETTINGS_GOSSIPPORT
+        value: "7946"
+      - name: MM_CLUSTERSETTINGS_LEADERELECTIONMODE
+        value: "k8s"
+      - name: MM_CLUSTERSETTINGS_LEADERELECTIONK8SNAMESPACE
+        value: "{{ .Release.Namespace }}"
+      - name: MM_CLUSTERSETTINGS_LEADERELECTIONK8SLEASENAME
+        value: "mattermost-ha"
+
+      # HA settings
+      - name: MM_HIGHAVAILABILITYSETTINGS_ENABLE
+        value: "true"
+      - name: MM_HIGHAVAILABILITYSETTINGS_READONLYCONFIG
+        value: "false"
+
+      # Service settings
+      - name: MM_SERVICESETTINGS_LISTENADDRESS
+        value: ":8065"
+      - name: MM_SERVICESETTINGS_SITEURL
+        value: "http://mattermost.local"
+
+      # Log settings
+      - name: MM_LOGSETTINGS_ENABLECONSOLE
+        value: "true"
+      - name: MM_LOGSETTINGS_CONSOLELEVEL
+        value: "INFO"
+      - name: MM_LOGSETTINGS_CONSOLEJSON
+        value: "false"
     ServiceSettings:
       ListenAddress: ":8065"
       SiteURL: "http://mattermost.local"
@@ -101,7 +150,7 @@ mattermost:
 
 # Database Configuration
 postgresql:
-  enabled: true
+  enabled: false
   image:
     repository: postgres
     tag: "18"
@@ -125,8 +174,8 @@ postgresql:
 # Storage Configuration
 persistence:
   enabled: true
-  storageClass: ""
-  size: 10Gi
+  storageClass: "vngcloud-nvme-5000-delete"
+  size: 1Gi
   accessModes:
     - ReadWriteOnce
 

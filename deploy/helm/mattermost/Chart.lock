@@ -1,0 +1,6 @@
+dependencies:
+- name: mattermost-ha
+  repository: file://../ha
+  version: 0.1.0
+digest: sha256:7ebbcb6dcc0665454ad392ae1c67df53489cf6c94051de876ad756189960613c
+generated: "2025-11-14T14:15:20.331574+07:00"

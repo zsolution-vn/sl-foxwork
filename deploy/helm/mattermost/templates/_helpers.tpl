@@ -92,9 +92,10 @@ Get lease namespace from mattermost-ha subchart or use default
 */}}
 {{- define "mattermost.lease.namespace" -}}
 {{- $namespace := "" }}
-{{- if and .Values.mattermost-ha .Values.mattermost-ha.cluster .Values.mattermost-ha.cluster.lease }}
-  {{- if .Values.mattermost-ha.cluster.lease.namespace }}
-    {{- $namespace = .Values.mattermost-ha.cluster.lease.namespace }}
+{{- $mmha := index .Values "mattermost-ha" }}
+{{- if and $mmha (index $mmha "cluster") (index $mmha.cluster "lease") }}
+  {{- if (index $mmha.cluster.lease "namespace") }}
+    {{- $namespace = (index $mmha.cluster.lease "namespace") }}
   {{- end }}
 {{- end }}
 {{- if not $namespace }}
@@ -103,7 +104,7 @@ Get lease namespace from mattermost-ha subchart or use default
   {{- end }}
 {{- end }}
 {{- if not $namespace }}
-{{- $namespace = .Release.Namespace }}
+  {{- $namespace = .Release.Namespace }}
 {{- end }}
 {{- $namespace }}
 {{- end }}
@@ -112,12 +113,13 @@ Get lease namespace from mattermost-ha subchart or use default
 Get lease name from mattermost-ha subchart or use default
 */}}
 {{- define "mattermost.lease.name" -}}
-{{- if and .Values.mattermost-ha .Values.mattermost-ha.cluster .Values.mattermost-ha.cluster.lease .Values.mattermost-ha.cluster.lease.name }}
-{{- .Values.mattermost-ha.cluster.lease.name }}
+{{- $mmha := index .Values "mattermost-ha" }}
+{{- if and $mmha (index $mmha "cluster") (index $mmha.cluster "lease") (index $mmha.cluster.lease "name") }}
+  {{- index $mmha.cluster.lease "name" }}
 {{- else if .Values.mattermost.config.ClusterSettings.LeaderElectionK8sLeaseName }}
-{{- .Values.mattermost.config.ClusterSettings.LeaderElectionK8sLeaseName }}
+  {{- .Values.mattermost.config.ClusterSettings.LeaderElectionK8sLeaseName }}
 {{- else }}
-{{- printf "%s-ha" .Release.Name }}
+  {{- printf "%s-ha" .Release.Name }}
 {{- end }}
 {{- end }}
 
