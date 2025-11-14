@@ -126,7 +126,7 @@ mattermost:
       - name: MM_SERVICESETTINGS_LISTENADDRESS
         value: ":8065"
       - name: MM_SERVICESETTINGS_SITEURL
-        value: "http://mattermost.local"
+        value: "https://work-test.foxia.vn"
 
       # Log settings
       - name: MM_LOGSETTINGS_ENABLECONSOLE
