@@ -952,16 +952,21 @@ func autoSeedPeers(port int, clusterName string) []string {
 	}
 
 	seeds := make([]string, 0, len(candidates)*2)
+	isSwarm := os.Getenv("SWARM_SERVICE_NAME") != ""
 	for _, name := range candidates {
 		name = strings.TrimSpace(name)
 		if name == "" {
 			continue
 		}
-		// Docker Swarm pattern
-		seeds = append(seeds,
-			fmt.Sprintf("tasks.%s:%d", name, port),
-			fmt.Sprintf("%s:%d", name, port),
-		)
+		// Check if this is a Kubernetes service name (contains .svc)
+		isK8sService := strings.Contains(name, ".svc") || strings.Contains(name, ".svc.cluster.local")
+
+		// Docker Swarm pattern: use tasks. prefix only for Swarm services
+		if isSwarm && !isK8sService {
+			seeds = append(seeds, fmt.Sprintf("tasks.%s:%d", name, port))
+		}
+		// Always add the direct name:port
+		seeds = append(seeds, fmt.Sprintf("%s:%d", name, port))
 	}
 	return dedupeStrings(seeds)
 }
