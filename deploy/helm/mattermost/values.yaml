@@ -137,7 +137,7 @@ mattermost:
         value: "false"
     ServiceSettings:
       ListenAddress: ":8065"
-      SiteURL: "http://mattermost.local"
+      SiteURL: "https://work-test.foxia.vn"
     LogSettings:
       EnableConsole: true
       ConsoleLevel: INFO
