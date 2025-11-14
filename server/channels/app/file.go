@@ -1601,8 +1601,14 @@ func (a *App) getCloudFilesSizeLimit() (int64, *model.AppError) {
 		return 0, nil
 	}
 
+	cloud := a.Cloud()
+	if cloud == nil {
+		// Cloud interface is not available
+		return 0, nil
+	}
+
 	// limits is in bits
-	limits, err := a.Cloud().GetCloudLimits("")
+	limits, err := cloud.GetCloudLimits("")
 	if err != nil {
 		return 0, model.NewAppError("getCloudFilesSizeLimit", "api.cloud.app_error", nil, "", http.StatusInternalServerError).Wrap(err)
 	}
