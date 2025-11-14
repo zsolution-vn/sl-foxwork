@@ -41,14 +41,14 @@ ingress:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
   hosts:
-    - host: work-test.foxia.vn
+    - host: work.foxia.vn
       paths:
         - path: /
           pathType: Prefix
   tls:
     - hosts:
-        - work-test.foxia.vn
-      secretName: work-test-tls-secret
+        - work.foxia.vn
+      secretName: work-tls-secret
 
 resources:
   limits:
@@ -126,7 +126,7 @@ mattermost:
       - name: MM_SERVICESETTINGS_LISTENADDRESS
         value: ":8065"
       - name: MM_SERVICESETTINGS_SITEURL
-        value: "https://work-test.foxia.vn"
+        value: "https://work.foxia.vn"
 
       # Log settings
       - name: MM_LOGSETTINGS_ENABLECONSOLE
@@ -137,7 +137,7 @@ mattermost:
         value: "false"
     ServiceSettings:
       ListenAddress: ":8065"
-      SiteURL: "https://work-test.foxia.vn"
+      SiteURL: "https://work.foxia.vn"
     LogSettings:
       EnableConsole: true
       ConsoleLevel: INFO
