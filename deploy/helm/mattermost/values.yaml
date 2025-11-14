@@ -1,0 +1,152 @@
+replicaCount: 3
+
+image:
+  repository: mattermost/mattermost-enterprise-edition
+  pullPolicy: IfNotPresent
+  tag: "9.0.0"
+
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: false  # Use service account from mattermost-ha chart
+  annotations: {}
+  name: ""  # Will use mattermost-ha service account name
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8065
+  targetPort: 8065
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: mattermost.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 1000m
+    memory: 1Gi
+
+autoscaling:
+  enabled: false
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Mattermost Configuration
+mattermost:
+  config:
+    SqlSettings:
+      DriverName: postgres
+      DataSource: "postgres://mmuser:$(POSTGRES_PASSWORD)@postgres:5432/mattermost?sslmode=disable&connect_timeout=10"
+      MaxIdleConns: 20
+      MaxOpenConns: 300
+      ConnMaxLifetimeMilliseconds: 3600000
+    ClusterSettings:
+      Enable: true
+      ClusterName: mattermost-k8s
+      BindAddress: "0.0.0.0"
+      GossipPort: 7946
+      AdvertiseAddress: ""
+      LeaderElectionMode: "k8s"
+      # LeaderElectionK8sNamespace and LeaderElectionK8sLeaseName will be auto-populated from mattermost-ha subchart
+      # If mattermost-ha is disabled, these defaults will be used:
+      LeaderElectionK8sNamespace: ""  # Will use Release.Namespace if empty
+      LeaderElectionK8sLeaseName: ""  # Will use {release-name}-ha if empty
+    ServiceSettings:
+      ListenAddress: ":8065"
+      SiteURL: "http://mattermost.local"
+    LogSettings:
+      EnableConsole: true
+      ConsoleLevel: INFO
+      ConsoleJson: false
+    FileSettings:
+      DriverName: local
+      Directory: "/mattermost/data"
+      MaxFileSize: 52428800
+    PluginSettings:
+      Enable: true
+      EnableUploads: true
+
+# Database Configuration
+postgresql:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "18"
+  auth:
+    postgresPassword: "mostest"
+    database: "mattermost"
+    username: "mmuser"
+    password: "mostest"
+  persistence:
+    enabled: true
+    size: 20Gi
+    storageClass: ""
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+# Storage Configuration
+persistence:
+  enabled: true
+  storageClass: ""
+  size: 10Gi
+  accessModes:
+    - ReadWriteOnce
+
+# HA Add-on Configuration
+mattermost-ha:
+  enabled: true
+  skipHeadlessService: true  # Main chart creates its own headless service
+  serviceAccount:
+    create: true
+    name: ""  # Will default to {release-name}-ha
+  cluster:
+    enabled: true
+    lease:
+      namespace: ""  # Will use Release.Namespace if empty
+      name: mattermost-ha
+      leaseDurationSeconds: 15
+      renewDeadlineSeconds: 10
+      retryPeriodSeconds: 2
+    gossip:
+      port: 7946
+      advertiseAddress: ""
+      bindAddress: "0.0.0.0"
+

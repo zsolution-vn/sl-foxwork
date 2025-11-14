@@ -1,0 +1,12 @@
+apiVersion: v2
+name: mattermost
+description: A Helm chart for Mattermost clustering on Kubernetes
+type: application
+version: 0.1.0
+appVersion: "9.0.0"
+dependencies:
+  - name: mattermost-ha
+    version: 0.1.0
+    repository: file://../ha
+    condition: mattermost-ha.enabled
+

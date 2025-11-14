@@ -129,11 +129,48 @@ func ConfigFromPlatform(ps *platform.PlatformService) Config {
 	}
 	if len(seedPeers) == 0 {
 		if auto := autoSeedPeers(port, clusterName); len(auto) > 0 {
-			ps.Log().Debug("Using auto-discovered gossip peers", mlog.String("peers", strings.Join(auto, ",")))
+			ps.Log().Info("Using auto-discovered gossip peers", mlog.String("peers", strings.Join(auto, ",")))
 			seedPeers = append(seedPeers, auto...)
 		}
 	}
 	seedPeers = dedupeStrings(seedPeers)
+
+	// Extract K8s lease settings from environment variables (preferred) or config
+	// Always read from env first, as config in DB may not have these values yet
+	k8sNamespace := strings.TrimSpace(os.Getenv("MM_CLUSTERSETTINGS_LEADERELECTIONK8SNAMESPACE"))
+	if k8sNamespace == "" {
+		// Try POD_NAMESPACE env var
+		k8sNamespace = strings.TrimSpace(os.Getenv("POD_NAMESPACE"))
+	}
+	if k8sNamespace == "" {
+		// Read from service account token (standard Kubernetes way)
+		if nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
+			k8sNamespace = strings.TrimSpace(string(nsBytes))
+		}
+	}
+	if k8sNamespace == "" && cfg.ClusterSettings.LeaderElectionK8sNamespace != nil {
+		k8sNamespace = strings.TrimSpace(*cfg.ClusterSettings.LeaderElectionK8sNamespace)
+	}
+
+	k8sLeaseName := strings.TrimSpace(os.Getenv("MM_CLUSTERSETTINGS_LEADERELECTIONK8SLEASENAME"))
+	if k8sLeaseName == "" && cfg.ClusterSettings.LeaderElectionK8sLeaseName != nil {
+		k8sLeaseName = strings.TrimSpace(*cfg.ClusterSettings.LeaderElectionK8sLeaseName)
+	}
+	// Fallback to default if still empty
+	if k8sLeaseName == "" {
+		k8sLeaseName = "mattermost-ha"
+	}
+
+	// Log for debugging (use Info level to ensure it's visible)
+	if ps != nil {
+		ps.Log().Info("K8s lease config extracted",
+			mlog.String("namespace", k8sNamespace),
+			mlog.String("lease_name", k8sLeaseName),
+			mlog.String("namespace_from_env", os.Getenv("MM_CLUSTERSETTINGS_LEADERELECTIONK8SNAMESPACE")),
+			mlog.String("lease_from_env", os.Getenv("MM_CLUSTERSETTINGS_LEADERELECTIONK8SLEASENAME")),
+			mlog.String("pod_namespace_env", os.Getenv("POD_NAMESPACE")),
+		)
+	}
 
 	return Config{
 		Enabled:       enabled,
@@ -141,6 +178,8 @@ func ConfigFromPlatform(ps *platform.PlatformService) Config {
 		BindAddress:   bindAddr,
 		AdvertiseAddr: advAddr,
 		BindPort:      port,
+		K8sNamespace:  k8sNamespace,
+		K8sLeaseName:  k8sLeaseName,
 		DBLeaseTable:  "cluster_leases",
 		LeaseTTL:      20 * time.Second,
 		Heartbeat:     5 * time.Second,
@@ -465,7 +504,23 @@ func (c *Cluster) startDBLeader() {
 }
 
 func (c *Cluster) startK8sLeader() {
-	c.leaderK8s = &leader.K8sLease{
+	// Log config values for debugging (use Info to ensure visibility)
+	c.ps.Log().Info("Starting K8s leader election",
+		mlog.String("namespace", c.cfg.K8sNamespace),
+		mlog.String("lease_name", c.cfg.K8sLeaseName),
+		mlog.String("identity", c.clusterID),
+	)
+
+	if c.cfg.K8sNamespace == "" {
+		c.ps.Log().Error("K8s namespace is empty, cannot start leader election")
+		return
+	}
+	if c.cfg.K8sLeaseName == "" {
+		c.ps.Log().Error("K8s lease name is empty, cannot start leader election")
+		return
+	}
+
+	lease, err := leader.NewK8sLease(leader.K8sLeaseOptions{
 		Namespace: c.cfg.K8sNamespace,
 		LeaseName: c.cfg.K8sLeaseName,
 		Identity:  c.clusterID,
@@ -478,10 +533,72 @@ func (c *Cluster) startK8sLeader() {
 		OnStop: func() {
 			c.onLeaderStop("k8s")
 		},
+		Logger: &mlogLoggerAdapter{logger: c.ps.Log()},
+	})
+	if err != nil {
+		c.ps.Log().Error("Failed to create Kubernetes lease client", mlog.Err(err))
+		return
 	}
+	c.leaderK8s = lease
 	if err := c.leaderK8s.Start(context.Background()); err != nil {
 		c.ps.Log().Error("Failed to start Kubernetes leader election", mlog.Err(err))
 	}
+}
+
+// mlogLoggerAdapter adapts mlog.LoggerIFace to leader.Logger interface
+type mlogLoggerAdapter struct {
+	logger mlog.LoggerIFace
+}
+
+// convertKeyvals converts key-value pairs to mlog format
+// Input: "key1", "value1", "key2", "value2"
+// Output: mlog.String("key1", "value1"), mlog.String("key2", "value2")
+func (a *mlogLoggerAdapter) convertKeyvals(keyvals ...interface{}) []mlog.Field {
+	if len(keyvals) == 0 {
+		return nil
+	}
+
+	fields := make([]mlog.Field, 0, len(keyvals)/2)
+	for i := 0; i < len(keyvals)-1; i += 2 {
+		key, ok := keyvals[i].(string)
+		if !ok {
+			continue
+		}
+		value := keyvals[i+1]
+		// Convert value to string for mlog
+		var strValue string
+		switch v := value.(type) {
+		case string:
+			strValue = v
+		case error:
+			fields = append(fields, mlog.Err(v))
+			continue
+		default:
+			strValue = fmt.Sprintf("%v", v)
+		}
+		fields = append(fields, mlog.String(key, strValue))
+	}
+	return fields
+}
+
+func (a *mlogLoggerAdapter) Info(msg string, keyvals ...interface{}) {
+	fields := a.convertKeyvals(keyvals...)
+	a.logger.Info(msg, fields...)
+}
+
+func (a *mlogLoggerAdapter) Warn(msg string, keyvals ...interface{}) {
+	fields := a.convertKeyvals(keyvals...)
+	a.logger.Warn(msg, fields...)
+}
+
+func (a *mlogLoggerAdapter) Error(msg string, keyvals ...interface{}) {
+	fields := a.convertKeyvals(keyvals...)
+	a.logger.Error(msg, fields...)
+}
+
+func (a *mlogLoggerAdapter) Debug(msg string, keyvals ...interface{}) {
+	fields := a.convertKeyvals(keyvals...)
+	a.logger.Debug(msg, fields...)
 }
 
 func (c *Cluster) onLeaderStart(_ context.Context, mode string) {
@@ -803,12 +920,44 @@ func autoSeedPeers(port int, clusterName string) []string {
 		candidates = append(candidates, clusterName)
 	}
 
+	// Kubernetes StatefulSet auto-discovery
+	// Try to detect headless service from StatefulSet pod name pattern
+	podName := os.Getenv("POD_NAME")
+	if podName == "" {
+		podName = os.Getenv("HOSTNAME")
+	}
+	if podName != "" {
+		// Extract StatefulSet name from pod name (e.g., "mattermost-0" -> "mattermost")
+		parts := strings.Split(podName, "-")
+		if len(parts) >= 2 {
+			// Try to get namespace
+			namespace := os.Getenv("POD_NAMESPACE")
+			if namespace == "" {
+				// Try to read from service account
+				if nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace"); err == nil {
+					namespace = strings.TrimSpace(string(nsBytes))
+				}
+			}
+			if namespace != "" {
+				// Common headless service patterns for StatefulSet
+				// Pattern: <statefulset-name>-headless.<namespace>.svc.cluster.local
+				statefulSetName := strings.Join(parts[:len(parts)-1], "-")
+				headlessService := fmt.Sprintf("%s-headless.%s.svc.cluster.local", statefulSetName, namespace)
+				candidates = append(candidates, headlessService)
+				// Also try without cluster.local suffix
+				candidates = append(candidates, fmt.Sprintf("%s-headless.%s.svc", statefulSetName, namespace))
+				candidates = append(candidates, fmt.Sprintf("%s-headless.%s", statefulSetName, namespace))
+			}
+		}
+	}
+
 	seeds := make([]string, 0, len(candidates)*2)
 	for _, name := range candidates {
 		name = strings.TrimSpace(name)
 		if name == "" {
 			continue
 		}
+		// Docker Swarm pattern
 		seeds = append(seeds,
 			fmt.Sprintf("tasks.%s:%d", name, port),
 			fmt.Sprintf("%s:%d", name, port),

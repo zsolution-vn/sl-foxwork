@@ -1,7 +1,9 @@
+skipHeadlessService: false
+
 cluster:
   enabled: true
   lease:
-    namespace: default
+    namespace: ""  # Will use Release.Namespace if empty
     name: mattermost-ha
     leaseDurationSeconds: 15
     renewDeadlineSeconds: 10

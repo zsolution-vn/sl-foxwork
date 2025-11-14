@@ -1,23 +1,47 @@
+{{- if and .Values.cluster.enabled .Values.cluster.lease }}
+{{- $leaseNamespace := .Values.cluster.lease.namespace }}
+{{- if not $leaseNamespace }}
+{{- $leaseNamespace = .Release.Namespace }}
+{{- end }}
+{{- if .Values.serviceAccount.create }}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: {{ default (printf "%s-ha" .Release.Name) .Values.serviceAccount.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/component: leader-election
 ---
+{{- end }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: {{ .Release.Name }}-lease
-  namespace: {{ .Values.cluster.lease.namespace }}
+  namespace: {{ $leaseNamespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/component: leader-election
 rules:
   - apiGroups: ["coordination.k8s.io"]
     resources: ["leases"]
+    resourceNames: ["{{ .Values.cluster.lease.name }}"]
     verbs: ["get", "create", "update", "patch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: {{ .Release.Name }}-lease
-  namespace: {{ .Values.cluster.lease.namespace }}
+  namespace: {{ $leaseNamespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/component: leader-election
 subjects:
   - kind: ServiceAccount
     name: {{ default (printf "%s-ha" .Release.Name) .Values.serviceAccount.name }}
@@ -26,6 +50,7 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
   name: {{ .Release.Name }}-lease
+{{- end }}
 
 
 

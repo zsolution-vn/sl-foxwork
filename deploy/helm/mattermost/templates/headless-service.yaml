@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "mattermost.fullname" . }}-headless
+  labels:
+    {{- include "mattermost.labels" . | nindent 4 }}
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    {{- include "mattermost.selectorLabels" . | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
+    - name: gossip
+      port: {{ .Values.mattermost.config.ClusterSettings.GossipPort }}
+      targetPort: {{ .Values.mattermost.config.ClusterSettings.GossipPort }}
+      protocol: TCP
+

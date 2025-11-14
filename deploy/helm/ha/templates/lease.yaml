@@ -1,0 +1,23 @@
+{{- if and .Values.cluster.enabled .Values.cluster.lease }}
+{{- $leaseNamespace := .Values.cluster.lease.namespace }}
+{{- if not $leaseNamespace }}
+{{- $leaseNamespace = .Release.Namespace }}
+{{- end }}
+apiVersion: coordination.k8s.io/v1
+kind: Lease
+metadata:
+  name: {{ .Values.cluster.lease.name }}
+  namespace: {{ $leaseNamespace }}
+  labels:
+    app.kubernetes.io/name: {{ .Release.Name }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/component: leader-election
+spec:
+  holderIdentity: ""
+  leaseDurationSeconds: {{ .Values.cluster.lease.leaseDurationSeconds | default 15 }}
+  acquireTime: null
+  renewTime: null
+  leaseTransitions: 0
+{{- end }}
+

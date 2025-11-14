@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mattermost.fullname" . }}-config
+  labels:
+    {{- include "mattermost.labels" . | nindent 4 }}
+data:
+  config.json: |
+    {
+      "SqlSettings": {
+        "DriverName": "{{ .Values.mattermost.config.SqlSettings.DriverName }}",
+        "DataSource": "{{ include "mattermost.postgresql.datasource" . }}",
+        "MaxIdleConns": {{ .Values.mattermost.config.SqlSettings.MaxIdleConns }},
+        "MaxOpenConns": {{ .Values.mattermost.config.SqlSettings.MaxOpenConns }},
+        "ConnMaxLifetimeMilliseconds": {{ .Values.mattermost.config.SqlSettings.ConnMaxLifetimeMilliseconds }}
+      },
+      "ClusterSettings": {
+        "Enable": {{ .Values.mattermost.config.ClusterSettings.Enable }},
+        "ClusterName": "{{ .Values.mattermost.config.ClusterSettings.ClusterName }}",
+        "BindAddress": "{{ .Values.mattermost.config.ClusterSettings.BindAddress }}",
+        "GossipPort": {{ .Values.mattermost.config.ClusterSettings.GossipPort }},
+        "AdvertiseAddress": "",
+        "GossipPeers": {{ include "mattermost.gossip.peers.json" . }},
+        "LeaderElectionMode": "{{ .Values.mattermost.config.ClusterSettings.LeaderElectionMode }}",
+        "LeaderElectionK8sNamespace": "{{ include "mattermost.lease.namespace" . }}",
+        "LeaderElectionK8sLeaseName": "{{ include "mattermost.lease.name" . }}"
+      },
+      "ServiceSettings": {
+        "ListenAddress": "{{ .Values.mattermost.config.ServiceSettings.ListenAddress }}",
+        "SiteURL": "{{ .Values.mattermost.config.ServiceSettings.SiteURL }}"
+      },
+      "LogSettings": {
+        "EnableConsole": {{ .Values.mattermost.config.LogSettings.EnableConsole }},
+        "ConsoleLevel": "{{ .Values.mattermost.config.LogSettings.ConsoleLevel }}",
+        "ConsoleJson": {{ .Values.mattermost.config.LogSettings.ConsoleJson }}
+      },
+      "FileSettings": {
+        "DriverName": "{{ .Values.mattermost.config.FileSettings.DriverName }}",
+        "Directory": "{{ .Values.mattermost.config.FileSettings.Directory }}",
+        "MaxFileSize": {{ .Values.mattermost.config.FileSettings.MaxFileSize }}
+      },
+      "PluginSettings": {
+        "Enable": {{ .Values.mattermost.config.PluginSettings.Enable }},
+        "EnableUploads": {{ .Values.mattermost.config.PluginSettings.EnableUploads }}
+      }
+    }
+

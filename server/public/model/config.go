@@ -1055,6 +1055,8 @@ type ClusterSettings struct {
 	ReadOnlyConfig                     *bool `access:"environment_high_availability,write_restrictable,cloud_restrictable"`
 	GossipPort                         *int  `access:"environment_high_availability,write_restrictable,cloud_restrictable"` // telemetry: none
 	LeaderElectionMode                 *string  `access:"environment_high_availability,write_restrictable,cloud_restrictable"`
+	LeaderElectionK8sNamespace         *string  `access:"environment_high_availability,write_restrictable,cloud_restrictable"`
+	LeaderElectionK8sLeaseName         *string  `access:"environment_high_availability,write_restrictable,cloud_restrictable"`
 	GossipPeerAddresses                []string `access:"environment_high_availability,write_restrictable,cloud_restrictable"`
 }
 
@@ -1109,6 +1111,14 @@ func (s *ClusterSettings) SetDefaults() {
 
 	if s.LeaderElectionMode == nil {
 		s.LeaderElectionMode = NewPointer("k8s")
+	}
+
+	if s.LeaderElectionK8sNamespace == nil {
+		s.LeaderElectionK8sNamespace = NewPointer("")
+	}
+
+	if s.LeaderElectionK8sLeaseName == nil {
+		s.LeaderElectionK8sLeaseName = NewPointer("")
 	}
 
 	if s.GossipPeerAddresses == nil {
