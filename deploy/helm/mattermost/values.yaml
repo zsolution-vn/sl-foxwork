@@ -91,6 +91,9 @@ mattermost:
       EnableConsole: true
       ConsoleLevel: INFO
       ConsoleJson: false
+    HighAvailabilitySettings:
+      Enable: true
+      ReadOnlyConfig: false
     FileSettings:
       DriverName: local
       Directory: "/mattermost/data"
