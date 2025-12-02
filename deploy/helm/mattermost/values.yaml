@@ -84,6 +84,13 @@ mattermost:
       MaxIdleConns: 20
       MaxOpenConns: 300
       ConnMaxLifetimeMilliseconds: 3600000
+    # CacheSettings:
+    #   CacheType: "redis"
+    #   RedisAddress: "49.213.89.95:6379"
+    #   RedisPassword: "W484oYdQwW2Voq25XgL2DtJPW8pFkTD2NAGQj7"
+    #   RedisCachePrefix: ""
+    #   RedisDB: 0
+    #   DisableClientCache: false
     ClusterSettings:
       Enable: true
       ClusterName: mattermost-k8s
@@ -140,6 +147,23 @@ mattermost:
         value: "INFO"
       - name: MM_LOGSETTINGS_CONSOLEJSON
         value: "false"
+
+      - name: MM_CACHESETTINGS_CACHE_TYPE
+        value: "redis"
+      - name: MM_CACHESETTINGS_REDIS_ADDRESS
+        value: "49.213.89.95:6379"
+      - name: MM_CACHESETTINGS_REDIS_PASSWORD
+        value: "W484oYdQwW2Voq25XgL2DtJPW8pFkTD2NAGQj7"
+      - name: MM_CACHESETTINGS_REDIS_DB
+        value: "0"
+
+      # - name: MM_REDISSETTINGS_ENABLE
+      #   value: "true"
+      # - name: MM_REDISSETTINGS_ADDRESS
+      #   value: "49.213.89.95:6379"
+      # - name: MM_REDISSETTINGS_PASSWORD
+      #   value: "W484oYdQwW2Voq25XgL2DtJPW8pFkTD2NAGQj7"
+
     ServiceSettings:
       ListenAddress: ":8065"
       SiteURL: "https://work.foxia.vn"
