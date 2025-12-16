@@ -13,6 +13,7 @@ data:
         "MaxIdleConns": {{ .Values.mattermost.config.SqlSettings.MaxIdleConns }},
         "MaxOpenConns": {{ .Values.mattermost.config.SqlSettings.MaxOpenConns }},
         "ConnMaxLifetimeMilliseconds": {{ .Values.mattermost.config.SqlSettings.ConnMaxLifetimeMilliseconds }}
+
       },
       "ClusterSettings": {
         "Enable": {{ .Values.mattermost.config.ClusterSettings.Enable }},
