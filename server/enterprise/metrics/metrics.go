@@ -1580,7 +1580,7 @@ func New(ps *platform.PlatformService, driver, dataSource string) *MetricsInterf
 }
 
 func (mi *MetricsInterfaceImpl) isLicensed() bool {
-	license := mi.Platform.License()
+	_ = mi.Platform.License()
 	return true
 }
 

@@ -445,7 +445,19 @@ func (c *Cluster) GetPluginStatuses() (model.PluginStatuses, *model.AppError) {
 }
 
 func (c *Cluster) ConfigChanged(previousConfig *model.Config, newConfig *model.Config, sendToOtherServer bool) *model.AppError {
-	// No-op; will broadcast config bump later.
+	if !sendToOtherServer {
+		return nil
+	}
+
+	c.ps.Log().Info("Broadcasting config change to cluster")
+
+	msg := &model.ClusterMessage{
+		Event:            model.ClusterEventConfigReload,
+		SendType:         model.ClusterSendReliable,
+		WaitForAllToSend: true,
+	}
+	c.SendClusterMessage(msg)
+
 	return nil
 }
 

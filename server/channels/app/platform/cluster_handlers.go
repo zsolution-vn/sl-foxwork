@@ -20,6 +20,7 @@ func (ps *PlatformService) RegisterClusterHandlers() {
 	ps.clusterIFace.RegisterClusterMessageHandler(model.ClusterEventBusyStateChanged, ps.clusterBusyStateChgHandler)
 	ps.clusterIFace.RegisterClusterMessageHandler(model.ClusterEventClearSessionCacheForUser, ps.clusterClearSessionCacheForUserHandler)
 	ps.clusterIFace.RegisterClusterMessageHandler(model.ClusterEventClearSessionCacheForAllUsers, ps.clusterClearSessionCacheForAllUsersHandler)
+	ps.clusterIFace.RegisterClusterMessageHandler(model.ClusterEventConfigReload, ps.clusterConfigReloadHandler)
 
 	for e, h := range ps.additionalClusterHandlers {
 		ps.clusterIFace.RegisterClusterMessageHandler(e, h)
@@ -92,6 +93,13 @@ func (ps *PlatformService) clusterBusyStateChgHandler(msg *model.ClusterMessage)
 		ps.logger.Warn("server busy state activated via cluster event - non-critical services disabled", mlog.Int("expires_sec", sbs.Expires))
 	} else {
 		ps.logger.Info("server busy state cleared via cluster event - non-critical services enabled")
+	}
+}
+
+func (ps *PlatformService) clusterConfigReloadHandler(msg *model.ClusterMessage) {
+	ps.logger.Info("Received config reload request from cluster")
+	if err := ps.ReloadConfig(); err != nil {
+		ps.logger.Error("Failed to reload config from cluster event", mlog.Err(err))
 	}
 }
 
