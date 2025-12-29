@@ -1957,7 +1957,6 @@ func login(c *Context, w http.ResponseWriter, r *http.Request) {
 				}
 				c.Logger.Debug("loginOdoo email", mlog.String("email", email))
 				mmUser, _ := c.App.GetUserByEmail(email)
-				c.Logger.Debug("loginOdoo mmUser", mlog.Any("mmUser", mmUser))
 				if mmUser == nil {
 					// Check if user exists with old Odoo email format
 					oldEmail := fmt.Sprintf("odoo_%d@odoo.local", authRes.UID)
