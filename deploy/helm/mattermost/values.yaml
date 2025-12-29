@@ -3,7 +3,7 @@ replicaCount: 3
 image:
   repository: vcr.vngcloud.vn/109605-salely/zs-foxwork-server-sevice
   pullPolicy: IfNotPresent
-  tag: "prod2d2cf5d0"
+  tag: "prodb13181a1"
 
 imagePullSecrets: []
 

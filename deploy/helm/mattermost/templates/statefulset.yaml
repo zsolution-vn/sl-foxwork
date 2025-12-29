@@ -40,13 +40,13 @@ spec:
           containerPort: {{ .Values.mattermost.config.ClusterSettings.GossipPort }}
           protocol: TCP
         env:
-        - name: MM_CACHESETTINGS_CACHE_TYPE
+        - name: MM_CACHESETTINGS_CACHETYPE
           value: "redis"
-        - name: MM_CACHESETTINGS_REDIS_ADDRESS
+        - name: MM_CACHESETTINGS_REDISADDRESS
           value: "49.213.89.95:6379"
-        - name: MM_CACHESETTINGS_REDIS_PASSWORD
+        - name: MM_CACHESETTINGS_REDISPASSWORD
           value: "W484oYdQwW2Voq25XgL2DtJPW8pFkTD2NAGQj7"
-        - name: MM_CACHESETTINGS_REDIS_DB
+        - name: MM_CACHESETTINGS_REDISDB
           value: "0"
         - name: MM_SQLSETTINGS_DRIVERNAME
           value: {{ .Values.mattermost.config.SqlSettings.DriverName | quote }}
