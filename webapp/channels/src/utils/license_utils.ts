@@ -3,10 +3,10 @@
 
 import moment from 'moment';
 
-import type {Product} from '@mattermost/types/cloud';
-import type {ClientLicense} from '@mattermost/types/config';
+import type { Product } from '@mattermost/types/cloud';
+import type { ClientLicense } from '@mattermost/types/config';
 
-import {CloudProducts, getLicenseTier, LicenseSkus, SelfHostedProducts} from 'utils/constants';
+import { CloudProducts, getLicenseTier, LicenseSkus, SelfHostedProducts } from 'utils/constants';
 
 const LICENSE_EXPIRY_NOTIFICATION = 1000 * 60 * 60 * 24 * 60; // 60 days
 const LICENSE_GRACE_PERIOD = 1000 * 60 * 60 * 24 * 10; // 10 days
@@ -86,10 +86,10 @@ export function getIsGovSku(license: ClientLicense) {
 
 export const isEnterpriseLicense = (license?: ClientLicense) => {
     switch (license?.SkuShortName) {
-    case LicenseSkus.Enterprise:
-    case LicenseSkus.E20:
-    case LicenseSkus.EnterpriseAdvanced:
-        return true;
+        case LicenseSkus.Enterprise:
+        case LicenseSkus.E20:
+        case LicenseSkus.EnterpriseAdvanced:
+            return true;
     }
 
     return false;
@@ -114,11 +114,7 @@ export function isEnterpriseOrCloudOrSKUStarterFree(license: ClientLicense, subs
 }
 
 export function isMinimumProfessionalLicense(license: ClientLicense): boolean {
-    if (!license) {
-        return false;
-    }
-
-    return getLicenseTier(license.SkuShortName) >= getLicenseTier(LicenseSkus.Professional);
+    return true;
 }
 
 export function isMinimumEnterpriseLicense(license: ClientLicense): boolean {
