@@ -2,35 +2,35 @@
 // See LICENSE.txt for license information.
 
 import classNames from 'classnames';
-import React, {useCallback, useRef, useState, useMemo} from 'react';
-import {FormattedList, FormattedMessage, useIntl} from 'react-intl';
-import {useDispatch, useSelector} from 'react-redux';
-import type {OnChangeValue} from 'react-select';
+import React, { useCallback, useRef, useState, useMemo } from 'react';
+import { FormattedList, FormattedMessage, useIntl } from 'react-intl';
+import { useDispatch, useSelector } from 'react-redux';
+import type { OnChangeValue } from 'react-select';
 
-import {GenericModal} from '@mattermost/components';
-import type {Post, PostPreviewMetadata} from '@mattermost/types/posts';
+import { GenericModal } from '@mattermost/components';
+import type { Post, PostPreviewMetadata } from '@mattermost/types/posts';
 
-import {General, Permissions} from 'mattermost-redux/constants';
-import {makeGetChannel} from 'mattermost-redux/selectors/entities/channels';
-import {haveIChannelPermission} from 'mattermost-redux/selectors/entities/roles';
-import {getCurrentTeam} from 'mattermost-redux/selectors/entities/teams';
-import type {ActionResult} from 'mattermost-redux/types/actions';
+import { General, Permissions } from 'mattermost-redux/constants';
+import { makeGetChannel } from 'mattermost-redux/selectors/entities/channels';
+import { haveIChannelPermission } from 'mattermost-redux/selectors/entities/roles';
+import { getCurrentTeam } from 'mattermost-redux/selectors/entities/teams';
+import type { ActionResult } from 'mattermost-redux/types/actions';
 
-import {openDirectChannelToUserId} from 'actions/channel_actions';
-import {joinChannelById, switchToChannel} from 'actions/views/channel';
-import {forwardPost} from 'actions/views/posts';
-import {getPermalinkURL} from 'selectors/urls';
+import { openDirectChannelToUserId } from 'actions/channel_actions';
+import { joinChannelById, switchToChannel } from 'actions/views/channel';
+import { forwardPost } from 'actions/views/posts';
+import { getPermalinkURL } from 'selectors/urls';
 
 import NotificationBox from 'components/notification_box';
 import PostMessagePreview from 'components/post_view/post_message_preview';
 
 import Constants from 'utils/constants';
-import {getSiteURL} from 'utils/url';
+import { getSiteURL } from 'utils/url';
 
-import type {GlobalState} from 'types/store';
+import type { GlobalState } from 'types/store';
 
-import ForwardPostChannelSelect, {makeSelectedChannelOption} from './forward_post_channel_select';
-import type {ChannelOption} from './forward_post_channel_select';
+import ForwardPostChannelSelect, { makeSelectedChannelOption } from './forward_post_channel_select';
+import type { ChannelOption } from './forward_post_channel_select';
 import ForwardPostCommentInput from './forward_post_comment_input';
 
 import './forward_post_modal.scss';
@@ -44,10 +44,10 @@ type Props = {
     post: Post;
 };
 
-const noop = () => {};
+const noop = () => { };
 
-const ForwardPostModal = ({onExited, post}: Props) => {
-    const {formatMessage} = useIntl();
+const ForwardPostModal = ({ onExited, post }: Props) => {
+    const { formatMessage } = useIntl();
     const dispatch = useDispatch();
 
     const getChannel = useMemo(makeGetChannel, []);
@@ -86,9 +86,9 @@ const ForwardPostModal = ({onExited, post}: Props) => {
 
     const canPostInSelectedChannel = useSelector(
         (state: GlobalState) => {
-            const channelId = isPrivateConversation ? post.channel_id : selectedChannelId;
+            const channelId = selectedChannelId;
             const isDMChannel = selectedChannel?.details?.type === Constants.DM_CHANNEL;
-            const teamId = isPrivateConversation ? currentTeam?.id : selectedChannel?.details?.team_id;
+            const teamId = selectedChannel?.details?.team_id;
 
             const hasChannelPermission = haveIChannelPermission(
                 state,
@@ -161,7 +161,7 @@ const ForwardPostModal = ({onExited, post}: Props) => {
                     id='forward_post_modal.notification.dm_or_gm'
                     defaultMessage='This message is from a private conversation and can only be shared with {participants}'
                     values={{
-                        participants: <FormattedList value={participants}/>,
+                        participants: <FormattedList value={participants} />,
                         strong: (x: React.ReactNode) => <strong>{x}</strong>,
                     }}
                 />
@@ -192,20 +192,20 @@ const ForwardPostModal = ({onExited, post}: Props) => {
             return Promise.resolve();
         }
 
-        const channelToForward = isPrivateConversation ? makeSelectedChannelOption(channel) : selectedChannel;
+        const channelToForward = selectedChannel;
 
         if (!channelToForward) {
             return Promise.resolve();
         }
 
-        const {type, userId} = channelToForward.details;
+        const { type, userId } = channelToForward.details;
 
         return Promise.resolve().then(() => {
             if (type === Constants.DM_CHANNEL && userId) {
                 return dispatch(openDirectChannelToUserId(userId));
             }
-            return {data: false} as ActionResult;
-        }).then(({data}) => {
+            return { data: false } as ActionResult;
+        }).then(({ data }) => {
             if (data) {
                 channelToForward.details.id = data.id;
             }
@@ -219,13 +219,13 @@ const ForwardPostModal = ({onExited, post}: Props) => {
             if (type === Constants.MENTION_MORE_CHANNELS && type === Constants.OPEN_CHANNEL) {
                 return dispatch(joinChannelById(channelToForward.details.id));
             }
-            return {data: false};
+            return { data: false };
         }).then(() => {
             // only switch channels when we are not in a private conversation
             if (!isPrivateConversation) {
                 return dispatch(switchToChannel(channelToForward.details));
             }
-            return {data: false};
+            return { data: false };
         }).then(() => {
             onHide();
         }).catch((result) => {
@@ -239,9 +239,9 @@ const ForwardPostModal = ({onExited, post}: Props) => {
         id: 'forward_post_modal.preview.footer_message',
         defaultMessage: 'Originally posted in ~{channel}',
     },
-    {
-        channel: channel?.display_name || '',
-    });
+        {
+            channel: channel?.display_name || '',
+        });
 
     return (
         <GenericModal
@@ -271,15 +271,11 @@ const ForwardPostModal = ({onExited, post}: Props) => {
                 className={'forward-post__body'}
                 ref={measuredRef}
             >
-                {isPrivateConversation ? (
-                    notification
-                ) : (
-                    <ForwardPostChannelSelect
-                        onSelect={handleChannelSelect}
-                        value={selectedChannel}
-                        currentBodyHeight={bodyHeight}
-                    />
-                )}
+                <ForwardPostChannelSelect
+                    onSelect={handleChannelSelect}
+                    value={selectedChannel}
+                    currentBodyHeight={bodyHeight}
+                />
                 <ForwardPostCommentInput
                     canForwardPost={canForwardPost}
                     channelId={selectedChannelId}
