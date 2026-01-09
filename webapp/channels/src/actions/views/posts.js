@@ -1,24 +1,24 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import {logError} from 'mattermost-redux/actions/errors';
+import { logError } from 'mattermost-redux/actions/errors';
 import * as PostActions from 'mattermost-redux/actions/posts';
-import {Permissions} from 'mattermost-redux/constants';
-import {getLicense} from 'mattermost-redux/selectors/entities/general';
-import {getAssociatedGroupsForReferenceByMention} from 'mattermost-redux/selectors/entities/groups';
-import {isCustomGroupsEnabled} from 'mattermost-redux/selectors/entities/preferences';
-import {haveIChannelPermission, haveICurrentChannelPermission} from 'mattermost-redux/selectors/entities/roles';
-import {getCurrentTeam} from 'mattermost-redux/selectors/entities/teams';
-import {getCurrentUserId} from 'mattermost-redux/selectors/entities/users';
+import { Permissions } from 'mattermost-redux/constants';
+import { getLicense } from 'mattermost-redux/selectors/entities/general';
+import { getAssociatedGroupsForReferenceByMention } from 'mattermost-redux/selectors/entities/groups';
+import { isCustomGroupsEnabled } from 'mattermost-redux/selectors/entities/preferences';
+import { haveIChannelPermission, haveICurrentChannelPermission } from 'mattermost-redux/selectors/entities/roles';
+import { getCurrentTeam } from 'mattermost-redux/selectors/entities/teams';
+import { getCurrentUserId } from 'mattermost-redux/selectors/entities/users';
 
-import {getPermalinkURL} from 'selectors/urls';
+import { getPermalinkURL } from 'selectors/urls';
 
-import {ActionTypes, AnnouncementBarTypes} from 'utils/constants';
-import {containsAtChannel, groupsMentionedInText} from 'utils/post_utils';
-import {getSiteURL} from 'utils/url';
-import {getTimestamp} from 'utils/utils';
+import { ActionTypes, AnnouncementBarTypes } from 'utils/constants';
+import { containsAtChannel, groupsMentionedInText } from 'utils/post_utils';
+import { getSiteURL } from 'utils/url';
+import { getTimestamp } from 'utils/utils';
 
-import {runMessageWillBePostedHooks} from '../hooks';
+import { runMessageWillBePostedHooks } from '../hooks';
 
 export function editPost(post) {
     return async (dispatch) => {
@@ -26,7 +26,7 @@ export function editPost(post) {
 
         // Send to error bar if it's an edit post error about time limit.
         if (result.error && result.error.server_error_id === 'api.post.update_post.permissions_time_limit.app_error') {
-            dispatch(logError({type: AnnouncementBarTypes.ANNOUNCEMENT, message: result.error.message}, true));
+            dispatch(logError({ type: AnnouncementBarTypes.ANNOUNCEMENT, message: result.error.message }, true));
         }
 
         return result;
@@ -58,14 +58,22 @@ export function forwardPost(post, channel, message = '') {
         const time = getTimestamp();
         const userId = currentUserId;
 
-        newPost.message = message ? `${message}\n${permaLink}` : permaLink;
+        let quote = '';
+        if (post.message) {
+            quote = `> ${post.message.replace(/\n/g, '\n> ')}\n\n`;
+        }
+        newPost.message = `${quote}${message ? message + '\n' : ''}${permaLink}`;
+
+        if (post.file_ids && post.file_ids.length > 0) {
+            newPost.file_ids = post.file_ids;
+        }
         newPost.pending_post_id = `${userId}:${time}`;
         newPost.user_id = userId;
         newPost.create_at = time;
         newPost.metadata = {};
         newPost.props = {};
 
-        if (!useChannelMentions && containsAtChannel(newPost.message, {checkAllMentions: true})) {
+        if (!useChannelMentions && containsAtChannel(newPost.message, { checkAllMentions: true })) {
             newPost.props.mentionHighlightDisabled = true;
         }
 
@@ -102,6 +110,6 @@ export function selectAttachmentMenuAction(postId, actionId, cookie, dataSource,
 
         dispatch(PostActions.doPostActionWithCookie(postId, actionId, cookie, value));
 
-        return {data: true};
+        return { data: true };
     };
 }
