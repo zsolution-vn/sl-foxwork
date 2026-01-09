@@ -22,10 +22,10 @@ func (api *API) InitChannelBookmarks() {
 }
 
 func createChannelBookmark(c *Context, w http.ResponseWriter, r *http.Request) {
-	if c.App.Channels().License() == nil {
-		c.Err = model.NewAppError("createChannelBookmark", "api.channel.bookmark.channel_bookmark.license.error", nil, "", http.StatusNotImplemented)
-		return
-	}
+	// if c.App.Channels().License() == nil {
+	// 	c.Err = model.NewAppError("createChannelBookmark", "api.channel.bookmark.channel_bookmark.license.error", nil, "", http.StatusNotImplemented)
+	// 	return
+	// }
 
 	connectionID := r.Header.Get(model.ConnectionId)
 

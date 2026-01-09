@@ -2484,9 +2484,9 @@ func convertGroupMessageToChannel(c *Context, w http.ResponseWriter, r *http.Req
 }
 
 func canEditChannelBanner(c *Context, originalChannel *model.Channel) {
-	if !model.MinimumEnterpriseAdvancedLicense(c.App.License()) {
+	/*if !model.MinimumEnterpriseAdvancedLicense(c.App.License()) {
 		c.Err = model.NewAppError("patchChannel", "license_error.feature_unavailable.specific", map[string]any{"Feature": "Channel Banner"}, "feature is not available for the current license", http.StatusForbidden)
-	}
+	}*/
 
 	switch originalChannel.Type {
 	case model.ChannelTypePrivate:

@@ -23,10 +23,10 @@ func (api *API) InitContentFlagging() {
 }
 
 func requireContentFlaggingEnabled(c *Context) {
-	if !model.MinimumEnterpriseAdvancedLicense(c.App.License()) {
+	/*if !model.MinimumEnterpriseAdvancedLicense(c.App.License()) {
 		c.Err = model.NewAppError("requireContentFlaggingEnabled", "api.content_flagging.error.license", nil, "", http.StatusNotImplemented)
 		return
-	}
+	}*/
 
 	contentFlaggingEnabled := c.App.Config().ContentFlaggingSettings.EnableContentFlagging
 	if contentFlaggingEnabled == nil || !*contentFlaggingEnabled {

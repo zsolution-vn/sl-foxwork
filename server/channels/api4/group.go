@@ -955,9 +955,9 @@ func getGroupsByTeamCommon(c *Context, r *http.Request) ([]byte, *model.AppError
 }
 
 func getGroupsByChannelCommon(c *Context, r *http.Request) ([]byte, *model.AppError) {
-	if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.LDAPGroups {
-		return nil, model.NewAppError("Api4.getGroupsByChannel", "api.ldap_groups.license_error", nil, "", http.StatusForbidden)
-	}
+	// if c.App.Channels().License() == nil || !*c.App.Channels().License().Features.LDAPGroups {
+	// 	return nil, model.NewAppError("Api4.getGroupsByChannel", "api.ldap_groups.license_error", nil, "", http.StatusForbidden)
+	// }
 
 	channel, appErr := c.App.GetChannel(c.AppContext, c.Params.ChannelId)
 	if appErr != nil {
